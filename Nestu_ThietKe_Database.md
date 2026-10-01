@@ -1,0 +1,1019 @@
+# THIẾT KẾ CƠ SỞ DỮ LIỆU – NESTU
+
+**Hệ quản trị:** SQL Server
+**Cách tiếp cận:** Entity Framework Core – Code First
+**DbContext:** `NestuDbContext : IdentityDbContext<ApplicationUser>`
+
+---
+
+## 1. Tổng quan
+
+Hệ thống có 9 bảng nghiệp vụ, cộng thêm các bảng mặc định của ASP.NET Core Identity.
+
+| STT | Bảng | Mô tả | Phụ trách |
+|---|---|---|---|
+| 1 | AspNetUsers | Người dùng (Admin, Landlord, Tenant) | Đạt |
+| 2 | BoardingHouses | Nhà trọ | Khánh |
+| 3 | Rooms | Phòng trọ | Khánh |
+| 4 | RoomImages | Ảnh phòng | Khánh |
+| 5 | RentalRequests | Yêu cầu thuê phòng | Lộc |
+| 6 | Contracts | Hợp đồng thuê | Lộc |
+| 7 | UtilityReadings | Chỉ số điện nước hàng tháng | Lộc |
+| 8 | Invoices | Hóa đơn hàng tháng | Lộc |
+| 9 | MaintenanceRequests | Báo cáo sự cố | Đạt |
+
+Các bảng Identity dùng mặc định: AspNetRoles, AspNetUserRoles, AspNetUserClaims, AspNetUserLogins, AspNetUserTokens, AspNetRoleClaims.
+
+---
+
+## 2. Sơ đồ ERD
+
+```mermaid
+erDiagram
+    AspNetUsers ||--o{ BoardingHouses : "sở hữu (Landlord)"
+    BoardingHouses ||--o{ Rooms : "có"
+    Rooms ||--o{ RoomImages : "có"
+    AspNetUsers ||--o{ RentalRequests : "gửi (Tenant)"
+    Rooms ||--o{ RentalRequests : "được yêu cầu"
+    AspNetUsers ||--o{ Contracts : "ký (Tenant)"
+    Rooms ||--o{ Contracts : "thuộc"
+    RentalRequests ||--o| Contracts : "tạo ra"
+    Contracts ||--o{ Invoices : "phát sinh"
+    Rooms ||--o{ UtilityReadings : "ghi chỉ số"
+    UtilityReadings ||--o| Invoices : "dùng để tính"
+    AspNetUsers ||--o{ MaintenanceRequests : "báo (Tenant)"
+    Rooms ||--o{ MaintenanceRequests : "gặp sự cố"
+
+    AspNetUsers {
+        nvarchar Id PK
+        nvarchar Email
+        nvarchar FullName
+        date DateOfBirth
+        bit IsActive
+    }
+    BoardingHouses {
+        int Id PK
+        nvarchar OwnerId FK
+        nvarchar Name
+        nvarchar District
+        decimal ElectricPrice
+        decimal WaterPrice
+        int ApprovalStatus
+    }
+    Rooms {
+        int Id PK
+        int BoardingHouseId FK
+        nvarchar RoomNumber
+        decimal Area
+        decimal Price
+        int Status
+    }
+    RoomImages {
+        int Id PK
+        int RoomId FK
+        nvarchar ImageUrl
+    }
+    RentalRequests {
+        int Id PK
+        int RoomId FK
+        nvarchar TenantId FK
+        int Status
+    }
+    Contracts {
+        int Id PK
+        int RoomId FK
+        nvarchar TenantId FK
+        int RentalRequestId FK
+        date StartDate
+        date EndDate
+        int Status
+    }
+    UtilityReadings {
+        int Id PK
+        int RoomId FK
+        int Month
+        int Year
+    }
+    Invoices {
+        int Id PK
+        int ContractId FK
+        int UtilityReadingId FK
+        decimal TotalAmount
+        int Status
+    }
+    MaintenanceRequests {
+        int Id PK
+        int RoomId FK
+        nvarchar TenantId FK
+        int Status
+    }
+```
+
+*(Sơ đồ viết bằng Mermaid; xem được trên GitHub, VS Code có extension Mermaid, hoặc mermaid.live. Khi vẽ bản chính thức cho báo cáo có thể dùng draw.io hoặc SSMS Database Diagram sau khi migration.)*
+
+---
+
+## 3. Enums
+
+| Enum | Giá trị | Dùng ở |
+|---|---|---|
+| **ApprovalStatus** | 0 Pending, 1 Approved, 2 Rejected | BoardingHouses.ApprovalStatus |
+| **RoomStatus** | 0 Available, 1 Occupied, 2 Maintenance | Rooms.Status |
+| **RentalRequestStatus** | 0 Pending, 1 Approved, 2 Rejected, 3 Cancelled | RentalRequests.Status |
+| **ContractStatus** | 0 Active, 1 Expired, 2 Terminated | Contracts.Status |
+| **InvoiceStatus** | 0 Unpaid, 1 Paid, 2 Overdue | Invoices.Status |
+| **MaintenancePriority** | 0 Low, 1 Medium, 2 High | MaintenanceRequests.Priority |
+| **MaintenanceStatus** | 0 Pending, 1 InProgress, 2 Resolved, 3 Rejected | MaintenanceRequests.Status |
+
+Tất cả enum lưu dạng `int` trong CSDL.
+
+---
+
+## 4. Chi tiết từng bảng
+
+### 4.1. AspNetUsers (`ApplicationUser : IdentityUser`)
+
+| Cột | Kiểu dữ liệu | Null | Ràng buộc / Mặc định | Ghi chú |
+|---|---|---|---|---|
+| Id | nvarchar(450) | Không | PK | Identity |
+| UserName | nvarchar(256) | Có | Unique (Identity) | |
+| Email | nvarchar(256) | Có | Unique (cấu hình `RequireUniqueEmail`) | |
+| PasswordHash | nvarchar(max) | Có | | Identity tự hash |
+| PhoneNumber | nvarchar(max) | Có | | |
+| FullName | nvarchar(100) | Không | | |
+| DateOfBirth | date | Có | | |
+| AvatarUrl | nvarchar(500) | Có | | |
+| IsActive | bit | Không | DEFAULT 1 | Admin khóa/mở |
+| CreatedAt | datetime2 | Không | DEFAULT GETDATE() | |
+
+Seed sẵn 3 role **Admin, Landlord, Tenant** và 1 tài khoản Admin.
+
+### 4.2. BoardingHouses
+
+| Cột | Kiểu dữ liệu | Null | Ràng buộc / Mặc định | Ghi chú |
+|---|---|---|---|---|
+| Id | int | Không | PK, Identity(1,1) | |
+| OwnerId | nvarchar(450) | Không | FK → AspNetUsers(Id) | Landlord sở hữu |
+| Name | nvarchar(150) | Không | | |
+| Address | nvarchar(255) | Không | | Số nhà, đường |
+| Ward | nvarchar(100) | Có | | Phường |
+| District | nvarchar(100) | Không | | Quận |
+| City | nvarchar(100) | Không | | |
+| Description | nvarchar(max) | Có | | |
+| ElectricPrice | decimal(18,2) | Không | CHECK ≥ 0 | Giá mỗi số điện |
+| WaterPrice | decimal(18,2) | Không | CHECK ≥ 0 | Giá mỗi khối nước |
+| ApprovalStatus | int | Không | DEFAULT 0 | Enum ApprovalStatus |
+| IsActive | bit | Không | DEFAULT 1 | |
+| CreatedAt | datetime2 | Không | DEFAULT GETDATE() | |
+
+### 4.3. Rooms
+
+| Cột | Kiểu dữ liệu | Null | Ràng buộc / Mặc định | Ghi chú |
+|---|---|---|---|---|
+| Id | int | Không | PK, Identity(1,1) | |
+| BoardingHouseId | int | Không | FK → BoardingHouses(Id) | |
+| RoomNumber | nvarchar(20) | Không | UNIQUE (BoardingHouseId, RoomNumber) | |
+| Floor | int | Có | CHECK ≥ 0 | |
+| Area | decimal(6,2) | Không | CHECK > 0 | m² |
+| Price | decimal(18,2) | Không | CHECK > 0 | Giá thuê/tháng |
+| MaxOccupants | int | Không | CHECK BETWEEN 1 AND 10 | |
+| Status | int | Không | DEFAULT 0 | Enum RoomStatus |
+| Description | nvarchar(1000) | Có | | |
+| CreatedAt | datetime2 | Không | DEFAULT GETDATE() | |
+
+### 4.4. RoomImages
+
+| Cột | Kiểu dữ liệu | Null | Ràng buộc / Mặc định | Ghi chú |
+|---|---|---|---|---|
+| Id | int | Không | PK, Identity(1,1) | |
+| RoomId | int | Không | FK → Rooms(Id), **ON DELETE CASCADE** | |
+| ImageUrl | nvarchar(500) | Không | | Đường dẫn file trong wwwroot hoặc URL |
+| IsThumbnail | bit | Không | DEFAULT 0 | Ảnh đại diện |
+
+### 4.5. RentalRequests
+
+| Cột | Kiểu dữ liệu | Null | Ràng buộc / Mặc định | Ghi chú |
+|---|---|---|---|---|
+| Id | int | Không | PK, Identity(1,1) | |
+| RoomId | int | Không | FK → Rooms(Id) | |
+| TenantId | nvarchar(450) | Không | FK → AspNetUsers(Id) | |
+| DesiredStartDate | date | Không | | Ngày muốn vào ở |
+| Message | nvarchar(500) | Có | | Lời nhắn cho chủ trọ |
+| Status | int | Không | DEFAULT 0 | Enum RentalRequestStatus |
+| ResponseNote | nvarchar(500) | Có | | Phản hồi của chủ trọ |
+| CreatedAt | datetime2 | Không | DEFAULT GETDATE() | |
+| RespondedAt | datetime2 | Có | | |
+
+**Filtered unique index:** `UNIQUE (RoomId, TenantId) WHERE Status = 0`. Một sinh viên không có 2 yêu cầu đang chờ cho cùng một phòng.
+
+### 4.6. Contracts
+
+| Cột | Kiểu dữ liệu | Null | Ràng buộc / Mặc định | Ghi chú |
+|---|---|---|---|---|
+| Id | int | Không | PK, Identity(1,1) | |
+| RoomId | int | Không | FK → Rooms(Id) | |
+| TenantId | nvarchar(450) | Không | FK → AspNetUsers(Id) | |
+| RentalRequestId | int | Có | FK → RentalRequests(Id), UNIQUE | Yêu cầu tạo ra hợp đồng |
+| StartDate | date | Không | | |
+| EndDate | date | Không | CHECK EndDate > StartDate | |
+| MonthlyRent | decimal(18,2) | Không | CHECK > 0 | Chốt giá tại thời điểm ký |
+| Deposit | decimal(18,2) | Không | CHECK ≥ 0 | Tiền cọc |
+| Status | int | Không | DEFAULT 0 | Enum ContractStatus |
+| CreatedAt | datetime2 | Không | DEFAULT GETDATE() | |
+
+**Filtered unique index:** `UNIQUE (RoomId) WHERE Status = 0`. Mỗi phòng chỉ có tối đa một hợp đồng Active.
+
+### 4.7. UtilityReadings
+
+| Cột | Kiểu dữ liệu | Null | Ràng buộc / Mặc định | Ghi chú |
+|---|---|---|---|---|
+| Id | int | Không | PK, Identity(1,1) | |
+| RoomId | int | Không | FK → Rooms(Id) | |
+| Month | int | Không | CHECK BETWEEN 1 AND 12 | |
+| Year | int | Không | CHECK ≥ 2020 | |
+| ElectricOld | int | Không | CHECK ≥ 0 | |
+| ElectricNew | int | Không | CHECK ElectricNew ≥ ElectricOld | |
+| WaterOld | int | Không | CHECK ≥ 0 | |
+| WaterNew | int | Không | CHECK WaterNew ≥ WaterOld | |
+| RecordedAt | datetime2 | Không | DEFAULT GETDATE() | |
+
+**Unique index:** `UNIQUE (RoomId, Month, Year)`.
+
+### 4.8. Invoices
+
+| Cột | Kiểu dữ liệu | Null | Ràng buộc / Mặc định | Ghi chú |
+|---|---|---|---|---|
+| Id | int | Không | PK, Identity(1,1) | |
+| ContractId | int | Không | FK → Contracts(Id) | |
+| UtilityReadingId | int | Có | FK → UtilityReadings(Id), UNIQUE | |
+| Month | int | Không | CHECK BETWEEN 1 AND 12 | |
+| Year | int | Không | CHECK ≥ 2020 | |
+| RoomFee | decimal(18,2) | Không | CHECK ≥ 0 | |
+| ElectricFee | decimal(18,2) | Không | CHECK ≥ 0 | |
+| WaterFee | decimal(18,2) | Không | CHECK ≥ 0 | |
+| OtherFee | decimal(18,2) | Không | DEFAULT 0, CHECK ≥ 0 | Wifi, rác, gửi xe... |
+| TotalAmount | decimal(18,2) | Không | CHECK ≥ 0 | |
+| Status | int | Không | DEFAULT 0 | Enum InvoiceStatus |
+| DueDate | date | Không | | Hạn thanh toán |
+| PaidAt | datetime2 | Có | | |
+| Note | nvarchar(500) | Có | | |
+| CreatedAt | datetime2 | Không | DEFAULT GETDATE() | |
+
+**Unique index:** `UNIQUE (ContractId, Month, Year)`.
+
+### 4.9. MaintenanceRequests
+
+| Cột | Kiểu dữ liệu | Null | Ràng buộc / Mặc định | Ghi chú |
+|---|---|---|---|---|
+| Id | int | Không | PK, Identity(1,1) | |
+| RoomId | int | Không | FK → Rooms(Id) | |
+| TenantId | nvarchar(450) | Không | FK → AspNetUsers(Id) | |
+| Title | nvarchar(150) | Không | | |
+| Description | nvarchar(1000) | Không | | |
+| Priority | int | Không | DEFAULT 1 | Enum MaintenancePriority |
+| Status | int | Không | DEFAULT 0 | Enum MaintenanceStatus |
+| LandlordNote | nvarchar(500) | Có | | |
+| CreatedAt | datetime2 | Không | DEFAULT GETDATE() | |
+| ResolvedAt | datetime2 | Có | | |
+
+---
+
+## 5. Quan hệ và hành vi xóa
+
+| Quan hệ | Kiểu | Khóa ngoại | Delete behavior |
+|---|---|---|---|
+| AspNetUsers → BoardingHouses | 1 – n | BoardingHouses.OwnerId | Restrict |
+| BoardingHouses → Rooms | 1 – n | Rooms.BoardingHouseId | Restrict |
+| Rooms → RoomImages | 1 – n | RoomImages.RoomId | **Cascade** |
+| Rooms → RentalRequests | 1 – n | RentalRequests.RoomId | Restrict |
+| AspNetUsers → RentalRequests | 1 – n | RentalRequests.TenantId | Restrict |
+| Rooms → Contracts | 1 – n | Contracts.RoomId | Restrict |
+| AspNetUsers → Contracts | 1 – n | Contracts.TenantId | Restrict |
+| RentalRequests → Contracts | 1 – 0..1 | Contracts.RentalRequestId | Restrict |
+| Contracts → Invoices | 1 – n | Invoices.ContractId | Restrict |
+| Rooms → UtilityReadings | 1 – n | UtilityReadings.RoomId | Restrict |
+| UtilityReadings → Invoices | 1 – 0..1 | Invoices.UtilityReadingId | Restrict |
+| Rooms → MaintenanceRequests | 1 – n | MaintenanceRequests.RoomId | Restrict |
+| AspNetUsers → MaintenanceRequests | 1 – n | MaintenanceRequests.TenantId | Restrict |
+
+Dùng Restrict để xóa nhà trọ hay phòng không vô tình xóa mất hợp đồng và hóa đơn. Muốn "xóa" nhà trọ thì dùng **xóa mềm** (`IsActive = false`).
+
+---
+
+## 6. Ràng buộc nghiệp vụ (kiểm tra trong tầng Service)
+
+Đây là phần "kiểm tra ràng buộc dữ liệu trong code" (yêu cầu 1.5), bổ sung cho các ràng buộc ở CSDL phía trên.
+
+**Nhà trọ và phòng**
+- Landlord chỉ xem, sửa, xóa nhà trọ và phòng có `OwnerId` trùng userId trong JWT.
+- Nhà trọ mới tạo có `ApprovalStatus = Pending`; chỉ Admin duyệt được.
+- Guest và Tenant chỉ thấy phòng thuộc nhà trọ `Approved` và `IsActive = true`.
+- Không xóa phòng đang có hợp đồng Active.
+
+**Thuê phòng**
+- Chỉ gửi yêu cầu thuê cho phòng `Available`.
+- Khi Landlord duyệt một yêu cầu, thực hiện trong **một transaction**:
+  1. Đổi yêu cầu sang `Approved`.
+  2. Tạo `Contract` (Active) với `MonthlyRent = Room.Price`.
+  3. Đổi `Room.Status` sang `Occupied`.
+  4. Tự động đổi các yêu cầu `Pending` khác của phòng đó sang `Rejected`.
+- Khi kết thúc hợp đồng (`Terminated`/`Expired`), `Room.Status` trở về `Available`.
+
+**Điện nước và hóa đơn**
+- Chỉ nhập chỉ số cho phòng đang có hợp đồng Active.
+- `ElectricOld`/`WaterOld` của tháng mới tự lấy từ `ElectricNew`/`WaterNew` của tháng gần nhất; nếu chưa có thì Landlord nhập.
+- Công thức:
+  - `ElectricFee = (ElectricNew − ElectricOld) × BoardingHouse.ElectricPrice`
+  - `WaterFee = (WaterNew − WaterOld) × BoardingHouse.WaterPrice`
+  - `RoomFee = Contract.MonthlyRent`
+  - `TotalAmount = RoomFee + ElectricFee + WaterFee + OtherFee`
+- Hóa đơn quá `DueDate` mà chưa thanh toán thì hiển thị `Overdue`.
+- Tenant chỉ xem hóa đơn của hợp đồng mình.
+
+**Sự cố**
+- Tenant chỉ báo sự cố cho phòng mình đang có hợp đồng Active.
+- Khi chuyển sang `Resolved` thì ghi `ResolvedAt`.
+
+**Tài khoản**
+- User có `IsActive = false` không đăng nhập được.
+- Khi đăng ký chỉ được chọn role Tenant hoặc Landlord; không tự đăng ký Admin.
+
+---
+
+## 7. Ví dụ cấu hình Fluent API
+
+```csharp
+public class RoomConfiguration : IEntityTypeConfiguration<Room>
+{
+    public void Configure(EntityTypeBuilder<Room> builder)
+    {
+        builder.ToTable("Rooms", t =>
+        {
+            t.HasCheckConstraint("CK_Rooms_Area", "[Area] > 0");
+            t.HasCheckConstraint("CK_Rooms_Price", "[Price] > 0");
+            t.HasCheckConstraint("CK_Rooms_MaxOccupants", "[MaxOccupants] BETWEEN 1 AND 10");
+        });
+
+        builder.Property(r => r.RoomNumber).HasMaxLength(20).IsRequired();
+        builder.Property(r => r.Area).HasPrecision(6, 2);
+        builder.Property(r => r.Price).HasPrecision(18, 2);
+        builder.Property(r => r.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+        builder.HasIndex(r => new { r.BoardingHouseId, r.RoomNumber }).IsUnique();
+
+        builder.HasOne(r => r.BoardingHouse)
+               .WithMany(h => h.Rooms)
+               .HasForeignKey(r => r.BoardingHouseId)
+               .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class ContractConfiguration : IEntityTypeConfiguration<Contract>
+{
+    public void Configure(EntityTypeBuilder<Contract> builder)
+    {
+        builder.ToTable("Contracts", t =>
+        {
+            t.HasCheckConstraint("CK_Contracts_Dates", "[EndDate] > [StartDate]");
+            t.HasCheckConstraint("CK_Contracts_MonthlyRent", "[MonthlyRent] > 0");
+            t.HasCheckConstraint("CK_Contracts_Deposit", "[Deposit] >= 0");
+        });
+
+        // Mỗi phòng chỉ có 1 hợp đồng Active
+        builder.HasIndex(c => c.RoomId)
+               .IsUnique()
+               .HasFilter("[Status] = 0");
+
+        builder.HasIndex(c => c.RentalRequestId)
+               .IsUnique()
+               .HasFilter("[RentalRequestId] IS NOT NULL");
+    }
+}
+```
+
+Trong `NestuDbContext.OnModelCreating`:
+
+```csharp
+base.OnModelCreating(builder); // bắt buộc gọi trước để Identity cấu hình bảng
+builder.ApplyConfigurationsFromAssembly(typeof(NestuDbContext).Assembly);
+```
+
+---
+
+## 8. Dữ liệu mẫu (seed) đề xuất
+
+| Dữ liệu | Số lượng | Ghi chú |
+|---|---|---|
+| Roles | 3 | Admin, Landlord, Tenant |
+| Admin | 1 | admin@nestu.vn |
+| Landlord | 2–3 | Mỗi người 1–2 nhà trọ |
+| Tenant | 5–6 | |
+| BoardingHouses | 4 | 3 Approved, 1 Pending (để demo Admin duyệt) |
+| Rooms | 15–20 | Đủ 3 trạng thái, giá và quận khác nhau (để demo OData) |
+| RentalRequests | 4–5 | Có Pending, Approved, Rejected |
+| Contracts | 3–4 | Có Active và Expired |
+| UtilityReadings + Invoices | 2–3 tháng | Có Paid, Unpaid, Overdue |
+| MaintenanceRequests | 3–4 | Đủ các trạng thái |
+
+Dữ liệu seed cần đủ đa dạng trạng thái để lúc demo mọi chức năng đều có dữ liệu hiển thị.
+
+---
+
+## 9. Lệnh migration (cách 2 – chỉ dùng nếu KHÔNG chạy script SQL ở mục 10)
+
+Chạy từ thư mục solution (chỉ Đạt thực hiện):
+
+```bash
+dotnet ef migrations add InitialCreate --project Nestu.BusinessObjects --startup-project Nestu.API
+dotnet ef database update --project Nestu.BusinessObjects --startup-project Nestu.API
+```
+
+Chuỗi kết nối đặt trong `Nestu.API/appsettings.json`:
+
+```json
+"ConnectionStrings": {
+  "NestuDb": "Server=localhost;Database=NestuDb;Trusted_Connection=True;TrustServerCertificate=True"
+}
+```
+
+Mỗi thành viên tự sửa `Server=` cho máy mình, và không commit thay đổi này lên repo.
+
+---
+
+## 10. Script SQL hoàn chỉnh (copy – dán – chạy)
+
+**Cách chạy:** mở SSMS → **New Query** → dán toàn bộ script bên dưới → nhấn **Execute (F5)**. Script cũng có sẵn trong file riêng `Nestu_Database.sql`.
+
+- Script **xóa database `NestuDb` cũ** (nếu có) rồi tạo lại từ đầu, nên chạy lại bao nhiêu lần cũng được. Đừng chạy lại khi DB đã có dữ liệu thật cần giữ.
+- Bảng Identity tạo đúng schema ASP.NET Core Identity .NET 8, nên `IdentityDbContext<ApplicationUser>` dùng được ngay.
+- Tài khoản mẫu đăng nhập được luôn với mật khẩu **`Nestu@123`**: `admin@nestu.vn`, `landlord1@nestu.vn`, `landlord2@nestu.vn`, `tenant1@nestu.vn` … `tenant5@nestu.vn` (tenant5 đang bị khóa để demo).
+- Cuối script có câu SELECT đếm số dòng mỗi bảng để kiểm tra.
+
+**Chọn một trong hai cách, không dùng cả hai:**
+
+| | Cách 1: Chạy script SQL này (khuyên dùng) | Cách 2: EF Core Migration (mục 9) |
+|---|---|---|
+| Tạo DB | Chạy script | `dotnet ef database update` |
+| Code C# | Viết Entities + Fluent API khớp với script (mục 7), **không tạo migration** | Viết Entities + Fluent API, tạo migration |
+| Đổi schema | Sửa script → cả nhóm chạy lại | Tạo migration mới |
+| Ưu điểm | Có sẵn dữ liệu mẫu, cả nhóm có DB giống hệt nhau ngay | Đúng quy trình Code First |
+
+Nếu dùng cách 1 mà vẫn muốn EF Core tự sinh Entities, có thể chạy lệnh scaffold (Database First):
+
+```bash
+dotnet ef dbcontext scaffold "Server=localhost;Database=NestuDb;Trusted_Connection=True;TrustServerCertificate=True" Microsoft.EntityFrameworkCore.SqlServer --project Nestu.BusinessObjects --output-dir Entities --context NestuDbContext --no-onconfiguring
+```
+
+Sau khi scaffold, sửa `NestuDbContext` kế thừa `IdentityDbContext<ApplicationUser>` và xóa các class AspNet* được sinh ra (Identity đã có sẵn).
+
+```sql
+/* =====================================================================
+   NESTU - QUẢN LÝ NHÀ TRỌ SINH VIÊN
+   Script tạo CSDL SQL Server: bảng Identity + 9 bảng nghiệp vụ + dữ liệu mẫu
+   Cách dùng: mở SSMS → New Query → dán toàn bộ → Execute (F5)
+   LƯU Ý: script XÓA database NestuDb cũ (nếu có) rồi tạo lại từ đầu.
+   Mật khẩu mọi tài khoản mẫu: Nestu@123
+   ===================================================================== */
+
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
+
+USE master;
+GO
+
+IF DB_ID(N'NestuDb') IS NOT NULL
+BEGIN
+    ALTER DATABASE NestuDb SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE NestuDb;
+END
+GO
+
+CREATE DATABASE NestuDb COLLATE Vietnamese_CI_AS;
+GO
+
+USE NestuDb;
+GO
+
+/* =====================================================================
+   PHẦN 1: CÁC BẢNG ASP.NET CORE IDENTITY (đúng schema Identity .NET 8)
+   ===================================================================== */
+
+CREATE TABLE AspNetRoles (
+    Id               NVARCHAR(450) NOT NULL,
+    Name             NVARCHAR(256) NULL,
+    NormalizedName   NVARCHAR(256) NULL,
+    ConcurrencyStamp NVARCHAR(MAX) NULL,
+    CONSTRAINT PK_AspNetRoles PRIMARY KEY (Id)
+);
+CREATE UNIQUE INDEX RoleNameIndex ON AspNetRoles (NormalizedName)
+    WHERE NormalizedName IS NOT NULL;
+GO
+
+CREATE TABLE AspNetUsers (
+    Id                   NVARCHAR(450)  NOT NULL,
+    -- Cột bổ sung của ApplicationUser
+    FullName             NVARCHAR(100)  NOT NULL,
+    DateOfBirth          DATE           NULL,
+    AvatarUrl            NVARCHAR(500)  NULL,
+    IsActive             BIT            NOT NULL CONSTRAINT DF_AspNetUsers_IsActive  DEFAULT 1,
+    CreatedAt            DATETIME2      NOT NULL CONSTRAINT DF_AspNetUsers_CreatedAt DEFAULT GETDATE(),
+    -- Cột mặc định của IdentityUser
+    UserName             NVARCHAR(256)  NULL,
+    NormalizedUserName   NVARCHAR(256)  NULL,
+    Email                NVARCHAR(256)  NULL,
+    NormalizedEmail      NVARCHAR(256)  NULL,
+    EmailConfirmed       BIT            NOT NULL,
+    PasswordHash         NVARCHAR(MAX)  NULL,
+    SecurityStamp        NVARCHAR(MAX)  NULL,
+    ConcurrencyStamp     NVARCHAR(MAX)  NULL,
+    PhoneNumber          NVARCHAR(MAX)  NULL,
+    PhoneNumberConfirmed BIT            NOT NULL,
+    TwoFactorEnabled     BIT            NOT NULL,
+    LockoutEnd           DATETIMEOFFSET NULL,
+    LockoutEnabled       BIT            NOT NULL,
+    AccessFailedCount    INT            NOT NULL,
+    CONSTRAINT PK_AspNetUsers PRIMARY KEY (Id)
+);
+CREATE INDEX EmailIndex ON AspNetUsers (NormalizedEmail);
+CREATE UNIQUE INDEX UserNameIndex ON AspNetUsers (NormalizedUserName)
+    WHERE NormalizedUserName IS NOT NULL;
+GO
+
+CREATE TABLE AspNetRoleClaims (
+    Id         INT IDENTITY(1,1) NOT NULL,
+    RoleId     NVARCHAR(450) NOT NULL,
+    ClaimType  NVARCHAR(MAX) NULL,
+    ClaimValue NVARCHAR(MAX) NULL,
+    CONSTRAINT PK_AspNetRoleClaims PRIMARY KEY (Id),
+    CONSTRAINT FK_AspNetRoleClaims_AspNetRoles_RoleId FOREIGN KEY (RoleId)
+        REFERENCES AspNetRoles (Id) ON DELETE CASCADE
+);
+CREATE INDEX IX_AspNetRoleClaims_RoleId ON AspNetRoleClaims (RoleId);
+GO
+
+CREATE TABLE AspNetUserClaims (
+    Id         INT IDENTITY(1,1) NOT NULL,
+    UserId     NVARCHAR(450) NOT NULL,
+    ClaimType  NVARCHAR(MAX) NULL,
+    ClaimValue NVARCHAR(MAX) NULL,
+    CONSTRAINT PK_AspNetUserClaims PRIMARY KEY (Id),
+    CONSTRAINT FK_AspNetUserClaims_AspNetUsers_UserId FOREIGN KEY (UserId)
+        REFERENCES AspNetUsers (Id) ON DELETE CASCADE
+);
+CREATE INDEX IX_AspNetUserClaims_UserId ON AspNetUserClaims (UserId);
+GO
+
+CREATE TABLE AspNetUserLogins (
+    LoginProvider       NVARCHAR(450) NOT NULL,
+    ProviderKey         NVARCHAR(450) NOT NULL,
+    ProviderDisplayName NVARCHAR(MAX) NULL,
+    UserId              NVARCHAR(450) NOT NULL,
+    CONSTRAINT PK_AspNetUserLogins PRIMARY KEY (LoginProvider, ProviderKey),
+    CONSTRAINT FK_AspNetUserLogins_AspNetUsers_UserId FOREIGN KEY (UserId)
+        REFERENCES AspNetUsers (Id) ON DELETE CASCADE
+);
+CREATE INDEX IX_AspNetUserLogins_UserId ON AspNetUserLogins (UserId);
+GO
+
+CREATE TABLE AspNetUserRoles (
+    UserId NVARCHAR(450) NOT NULL,
+    RoleId NVARCHAR(450) NOT NULL,
+    CONSTRAINT PK_AspNetUserRoles PRIMARY KEY (UserId, RoleId),
+    CONSTRAINT FK_AspNetUserRoles_AspNetRoles_RoleId FOREIGN KEY (RoleId)
+        REFERENCES AspNetRoles (Id) ON DELETE CASCADE,
+    CONSTRAINT FK_AspNetUserRoles_AspNetUsers_UserId FOREIGN KEY (UserId)
+        REFERENCES AspNetUsers (Id) ON DELETE CASCADE
+);
+CREATE INDEX IX_AspNetUserRoles_RoleId ON AspNetUserRoles (RoleId);
+GO
+
+CREATE TABLE AspNetUserTokens (
+    UserId        NVARCHAR(450) NOT NULL,
+    LoginProvider NVARCHAR(450) NOT NULL,
+    Name          NVARCHAR(450) NOT NULL,
+    Value         NVARCHAR(MAX) NULL,
+    CONSTRAINT PK_AspNetUserTokens PRIMARY KEY (UserId, LoginProvider, Name),
+    CONSTRAINT FK_AspNetUserTokens_AspNetUsers_UserId FOREIGN KEY (UserId)
+        REFERENCES AspNetUsers (Id) ON DELETE CASCADE
+);
+GO
+
+/* =====================================================================
+   PHẦN 2: CÁC BẢNG NGHIỆP VỤ
+   Enum lưu dạng INT:
+     ApprovalStatus      : 0 Pending, 1 Approved, 2 Rejected
+     RoomStatus          : 0 Available, 1 Occupied, 2 Maintenance
+     RentalRequestStatus : 0 Pending, 1 Approved, 2 Rejected, 3 Cancelled
+     ContractStatus      : 0 Active, 1 Expired, 2 Terminated
+     InvoiceStatus       : 0 Unpaid, 1 Paid, 2 Overdue
+     MaintenancePriority : 0 Low, 1 Medium, 2 High
+     MaintenanceStatus   : 0 Pending, 1 InProgress, 2 Resolved, 3 Rejected
+   ===================================================================== */
+
+-- 2.1. BoardingHouses
+CREATE TABLE BoardingHouses (
+    Id             INT IDENTITY(1,1) NOT NULL,
+    OwnerId        NVARCHAR(450)  NOT NULL,
+    Name           NVARCHAR(150)  NOT NULL,
+    Address        NVARCHAR(255)  NOT NULL,
+    Ward           NVARCHAR(100)  NULL,
+    District       NVARCHAR(100)  NOT NULL,
+    City           NVARCHAR(100)  NOT NULL,
+    Description    NVARCHAR(MAX)  NULL,
+    ElectricPrice  DECIMAL(18,2)  NOT NULL,
+    WaterPrice     DECIMAL(18,2)  NOT NULL,
+    ApprovalStatus INT            NOT NULL CONSTRAINT DF_BoardingHouses_ApprovalStatus DEFAULT 0,
+    IsActive       BIT            NOT NULL CONSTRAINT DF_BoardingHouses_IsActive       DEFAULT 1,
+    CreatedAt      DATETIME2      NOT NULL CONSTRAINT DF_BoardingHouses_CreatedAt      DEFAULT GETDATE(),
+    CONSTRAINT PK_BoardingHouses PRIMARY KEY (Id),
+    CONSTRAINT FK_BoardingHouses_AspNetUsers_OwnerId FOREIGN KEY (OwnerId)
+        REFERENCES AspNetUsers (Id),
+    CONSTRAINT CK_BoardingHouses_ElectricPrice  CHECK (ElectricPrice >= 0),
+    CONSTRAINT CK_BoardingHouses_WaterPrice     CHECK (WaterPrice >= 0),
+    CONSTRAINT CK_BoardingHouses_ApprovalStatus CHECK (ApprovalStatus IN (0, 1, 2))
+);
+CREATE INDEX IX_BoardingHouses_OwnerId  ON BoardingHouses (OwnerId);
+CREATE INDEX IX_BoardingHouses_District ON BoardingHouses (District);
+GO
+
+-- 2.2. Rooms
+CREATE TABLE Rooms (
+    Id              INT IDENTITY(1,1) NOT NULL,
+    BoardingHouseId INT            NOT NULL,
+    RoomNumber      NVARCHAR(20)   NOT NULL,
+    Floor           INT            NULL,
+    Area            DECIMAL(6,2)   NOT NULL,
+    Price           DECIMAL(18,2)  NOT NULL,
+    MaxOccupants    INT            NOT NULL,
+    Status          INT            NOT NULL CONSTRAINT DF_Rooms_Status    DEFAULT 0,
+    Description     NVARCHAR(1000) NULL,
+    CreatedAt       DATETIME2      NOT NULL CONSTRAINT DF_Rooms_CreatedAt DEFAULT GETDATE(),
+    CONSTRAINT PK_Rooms PRIMARY KEY (Id),
+    CONSTRAINT FK_Rooms_BoardingHouses_BoardingHouseId FOREIGN KEY (BoardingHouseId)
+        REFERENCES BoardingHouses (Id),
+    CONSTRAINT CK_Rooms_Floor        CHECK (Floor IS NULL OR Floor >= 0),
+    CONSTRAINT CK_Rooms_Area         CHECK (Area > 0),
+    CONSTRAINT CK_Rooms_Price        CHECK (Price > 0),
+    CONSTRAINT CK_Rooms_MaxOccupants CHECK (MaxOccupants BETWEEN 1 AND 10),
+    CONSTRAINT CK_Rooms_Status       CHECK (Status IN (0, 1, 2))
+);
+CREATE UNIQUE INDEX IX_Rooms_BoardingHouseId_RoomNumber ON Rooms (BoardingHouseId, RoomNumber);
+CREATE INDEX IX_Rooms_Price ON Rooms (Price);
+GO
+
+-- 2.3. RoomImages
+CREATE TABLE RoomImages (
+    Id          INT IDENTITY(1,1) NOT NULL,
+    RoomId      INT           NOT NULL,
+    ImageUrl    NVARCHAR(500) NOT NULL,
+    IsThumbnail BIT           NOT NULL CONSTRAINT DF_RoomImages_IsThumbnail DEFAULT 0,
+    CONSTRAINT PK_RoomImages PRIMARY KEY (Id),
+    CONSTRAINT FK_RoomImages_Rooms_RoomId FOREIGN KEY (RoomId)
+        REFERENCES Rooms (Id) ON DELETE CASCADE
+);
+CREATE INDEX IX_RoomImages_RoomId ON RoomImages (RoomId);
+GO
+
+-- 2.4. RentalRequests
+CREATE TABLE RentalRequests (
+    Id               INT IDENTITY(1,1) NOT NULL,
+    RoomId           INT           NOT NULL,
+    TenantId         NVARCHAR(450) NOT NULL,
+    DesiredStartDate DATE          NOT NULL,
+    Message          NVARCHAR(500) NULL,
+    Status           INT           NOT NULL CONSTRAINT DF_RentalRequests_Status    DEFAULT 0,
+    ResponseNote     NVARCHAR(500) NULL,
+    CreatedAt        DATETIME2     NOT NULL CONSTRAINT DF_RentalRequests_CreatedAt DEFAULT GETDATE(),
+    RespondedAt      DATETIME2     NULL,
+    CONSTRAINT PK_RentalRequests PRIMARY KEY (Id),
+    CONSTRAINT FK_RentalRequests_Rooms_RoomId FOREIGN KEY (RoomId)
+        REFERENCES Rooms (Id),
+    CONSTRAINT FK_RentalRequests_AspNetUsers_TenantId FOREIGN KEY (TenantId)
+        REFERENCES AspNetUsers (Id),
+    CONSTRAINT CK_RentalRequests_Status CHECK (Status IN (0, 1, 2, 3))
+);
+-- Một sinh viên không có 2 yêu cầu đang chờ cho cùng một phòng
+CREATE UNIQUE INDEX IX_RentalRequests_RoomId_TenantId_Pending
+    ON RentalRequests (RoomId, TenantId) WHERE Status = 0;
+CREATE INDEX IX_RentalRequests_TenantId ON RentalRequests (TenantId);
+GO
+
+-- 2.5. Contracts
+CREATE TABLE Contracts (
+    Id              INT IDENTITY(1,1) NOT NULL,
+    RoomId          INT           NOT NULL,
+    TenantId        NVARCHAR(450) NOT NULL,
+    RentalRequestId INT           NULL,
+    StartDate       DATE          NOT NULL,
+    EndDate         DATE          NOT NULL,
+    MonthlyRent     DECIMAL(18,2) NOT NULL,
+    Deposit         DECIMAL(18,2) NOT NULL,
+    Status          INT           NOT NULL CONSTRAINT DF_Contracts_Status    DEFAULT 0,
+    CreatedAt       DATETIME2     NOT NULL CONSTRAINT DF_Contracts_CreatedAt DEFAULT GETDATE(),
+    CONSTRAINT PK_Contracts PRIMARY KEY (Id),
+    CONSTRAINT FK_Contracts_Rooms_RoomId FOREIGN KEY (RoomId)
+        REFERENCES Rooms (Id),
+    CONSTRAINT FK_Contracts_AspNetUsers_TenantId FOREIGN KEY (TenantId)
+        REFERENCES AspNetUsers (Id),
+    CONSTRAINT FK_Contracts_RentalRequests_RentalRequestId FOREIGN KEY (RentalRequestId)
+        REFERENCES RentalRequests (Id),
+    CONSTRAINT CK_Contracts_Dates       CHECK (EndDate > StartDate),
+    CONSTRAINT CK_Contracts_MonthlyRent CHECK (MonthlyRent > 0),
+    CONSTRAINT CK_Contracts_Deposit     CHECK (Deposit >= 0),
+    CONSTRAINT CK_Contracts_Status      CHECK (Status IN (0, 1, 2))
+);
+-- Mỗi phòng chỉ có tối đa 1 hợp đồng Active
+CREATE UNIQUE INDEX IX_Contracts_RoomId_Active
+    ON Contracts (RoomId) WHERE Status = 0;
+-- Một yêu cầu thuê chỉ tạo ra tối đa 1 hợp đồng
+CREATE UNIQUE INDEX IX_Contracts_RentalRequestId
+    ON Contracts (RentalRequestId) WHERE RentalRequestId IS NOT NULL;
+CREATE INDEX IX_Contracts_TenantId ON Contracts (TenantId);
+GO
+
+-- 2.6. UtilityReadings
+CREATE TABLE UtilityReadings (
+    Id          INT IDENTITY(1,1) NOT NULL,
+    RoomId      INT       NOT NULL,
+    [Month]     INT       NOT NULL,
+    [Year]      INT       NOT NULL,
+    ElectricOld INT       NOT NULL,
+    ElectricNew INT       NOT NULL,
+    WaterOld    INT       NOT NULL,
+    WaterNew    INT       NOT NULL,
+    RecordedAt  DATETIME2 NOT NULL CONSTRAINT DF_UtilityReadings_RecordedAt DEFAULT GETDATE(),
+    CONSTRAINT PK_UtilityReadings PRIMARY KEY (Id),
+    CONSTRAINT FK_UtilityReadings_Rooms_RoomId FOREIGN KEY (RoomId)
+        REFERENCES Rooms (Id),
+    CONSTRAINT CK_UtilityReadings_Month    CHECK ([Month] BETWEEN 1 AND 12),
+    CONSTRAINT CK_UtilityReadings_Year     CHECK ([Year] >= 2020),
+    CONSTRAINT CK_UtilityReadings_Electric CHECK (ElectricOld >= 0 AND ElectricNew >= ElectricOld),
+    CONSTRAINT CK_UtilityReadings_Water    CHECK (WaterOld >= 0 AND WaterNew >= WaterOld)
+);
+CREATE UNIQUE INDEX IX_UtilityReadings_RoomId_Month_Year ON UtilityReadings (RoomId, [Month], [Year]);
+GO
+
+-- 2.7. Invoices
+CREATE TABLE Invoices (
+    Id               INT IDENTITY(1,1) NOT NULL,
+    ContractId       INT           NOT NULL,
+    UtilityReadingId INT           NULL,
+    [Month]          INT           NOT NULL,
+    [Year]           INT           NOT NULL,
+    RoomFee          DECIMAL(18,2) NOT NULL,
+    ElectricFee      DECIMAL(18,2) NOT NULL,
+    WaterFee         DECIMAL(18,2) NOT NULL,
+    OtherFee         DECIMAL(18,2) NOT NULL CONSTRAINT DF_Invoices_OtherFee  DEFAULT 0,
+    TotalAmount      DECIMAL(18,2) NOT NULL,
+    Status           INT           NOT NULL CONSTRAINT DF_Invoices_Status    DEFAULT 0,
+    DueDate          DATE          NOT NULL,
+    PaidAt           DATETIME2     NULL,
+    Note             NVARCHAR(500) NULL,
+    CreatedAt        DATETIME2     NOT NULL CONSTRAINT DF_Invoices_CreatedAt DEFAULT GETDATE(),
+    CONSTRAINT PK_Invoices PRIMARY KEY (Id),
+    CONSTRAINT FK_Invoices_Contracts_ContractId FOREIGN KEY (ContractId)
+        REFERENCES Contracts (Id),
+    CONSTRAINT FK_Invoices_UtilityReadings_UtilityReadingId FOREIGN KEY (UtilityReadingId)
+        REFERENCES UtilityReadings (Id),
+    CONSTRAINT CK_Invoices_Month  CHECK ([Month] BETWEEN 1 AND 12),
+    CONSTRAINT CK_Invoices_Year   CHECK ([Year] >= 2020),
+    CONSTRAINT CK_Invoices_Fees   CHECK (RoomFee >= 0 AND ElectricFee >= 0 AND WaterFee >= 0 AND OtherFee >= 0),
+    CONSTRAINT CK_Invoices_Total  CHECK (TotalAmount >= 0),
+    CONSTRAINT CK_Invoices_Status CHECK (Status IN (0, 1, 2))
+);
+CREATE UNIQUE INDEX IX_Invoices_ContractId_Month_Year ON Invoices (ContractId, [Month], [Year]);
+CREATE UNIQUE INDEX IX_Invoices_UtilityReadingId
+    ON Invoices (UtilityReadingId) WHERE UtilityReadingId IS NOT NULL;
+GO
+
+-- 2.8. MaintenanceRequests
+CREATE TABLE MaintenanceRequests (
+    Id           INT IDENTITY(1,1) NOT NULL,
+    RoomId       INT            NOT NULL,
+    TenantId     NVARCHAR(450)  NOT NULL,
+    Title        NVARCHAR(150)  NOT NULL,
+    Description  NVARCHAR(1000) NOT NULL,
+    Priority     INT            NOT NULL CONSTRAINT DF_MaintenanceRequests_Priority  DEFAULT 1,
+    Status       INT            NOT NULL CONSTRAINT DF_MaintenanceRequests_Status    DEFAULT 0,
+    LandlordNote NVARCHAR(500)  NULL,
+    CreatedAt    DATETIME2      NOT NULL CONSTRAINT DF_MaintenanceRequests_CreatedAt DEFAULT GETDATE(),
+    ResolvedAt   DATETIME2      NULL,
+    CONSTRAINT PK_MaintenanceRequests PRIMARY KEY (Id),
+    CONSTRAINT FK_MaintenanceRequests_Rooms_RoomId FOREIGN KEY (RoomId)
+        REFERENCES Rooms (Id),
+    CONSTRAINT FK_MaintenanceRequests_AspNetUsers_TenantId FOREIGN KEY (TenantId)
+        REFERENCES AspNetUsers (Id),
+    CONSTRAINT CK_MaintenanceRequests_Priority CHECK (Priority IN (0, 1, 2)),
+    CONSTRAINT CK_MaintenanceRequests_Status   CHECK (Status IN (0, 1, 2, 3))
+);
+CREATE INDEX IX_MaintenanceRequests_RoomId   ON MaintenanceRequests (RoomId);
+CREATE INDEX IX_MaintenanceRequests_TenantId ON MaintenanceRequests (TenantId);
+GO
+
+/* =====================================================================
+   PHẦN 3: DỮ LIỆU MẪU
+   ===================================================================== */
+
+-- 3.1. Roles
+INSERT INTO AspNetRoles (Id, Name, NormalizedName, ConcurrencyStamp) VALUES
+(N'10000000-0000-0000-0000-000000000001', N'Admin',    N'ADMIN',    CONVERT(NVARCHAR(36), NEWID())),
+(N'10000000-0000-0000-0000-000000000002', N'Landlord', N'LANDLORD', CONVERT(NVARCHAR(36), NEWID())),
+(N'10000000-0000-0000-0000-000000000003', N'Tenant',   N'TENANT',   CONVERT(NVARCHAR(36), NEWID()));
+GO
+
+-- 3.2. Users (mật khẩu tất cả: Nestu@123 - hash chuẩn ASP.NET Core Identity V3)
+DECLARE @pw NVARCHAR(MAX) = N'AQAAAAIAAYagAAAAEA31/qxEPbzQLkmOufwmgpBI1md0B/1m31//qWP3PGrDwydXE1gXs//7GEZ5zCbfeA==';
+
+INSERT INTO AspNetUsers
+(Id, FullName, DateOfBirth, AvatarUrl, IsActive, CreatedAt,
+ UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed,
+ PasswordHash, SecurityStamp, ConcurrencyStamp, PhoneNumber, PhoneNumberConfirmed,
+ TwoFactorEnabled, LockoutEnd, LockoutEnabled, AccessFailedCount)
+VALUES
+(N'20000000-0000-0000-0000-000000000001', N'Quản trị viên Nestu', NULL, NULL, 1, '2026-01-01T08:00:00',
+ N'admin@nestu.vn', N'ADMIN@NESTU.VN', N'admin@nestu.vn', N'ADMIN@NESTU.VN', 1,
+ @pw, CONVERT(NVARCHAR(36), NEWID()), CONVERT(NVARCHAR(36), NEWID()), N'0900000001', 0, 0, NULL, 1, 0),
+
+(N'20000000-0000-0000-0000-000000000002', N'Nguyễn Văn Hùng', '1980-05-12', NULL, 1, '2026-01-05T08:00:00',
+ N'landlord1@nestu.vn', N'LANDLORD1@NESTU.VN', N'landlord1@nestu.vn', N'LANDLORD1@NESTU.VN', 1,
+ @pw, CONVERT(NVARCHAR(36), NEWID()), CONVERT(NVARCHAR(36), NEWID()), N'0912345601', 0, 0, NULL, 1, 0),
+
+(N'20000000-0000-0000-0000-000000000003', N'Trần Thị Mai', '1985-09-20', NULL, 1, '2026-01-06T08:00:00',
+ N'landlord2@nestu.vn', N'LANDLORD2@NESTU.VN', N'landlord2@nestu.vn', N'LANDLORD2@NESTU.VN', 1,
+ @pw, CONVERT(NVARCHAR(36), NEWID()), CONVERT(NVARCHAR(36), NEWID()), N'0912345602', 0, 0, NULL, 1, 0),
+
+(N'20000000-0000-0000-0000-000000000004', N'Lê Minh Anh', '2004-03-15', NULL, 1, '2026-02-01T08:00:00',
+ N'tenant1@nestu.vn', N'TENANT1@NESTU.VN', N'tenant1@nestu.vn', N'TENANT1@NESTU.VN', 1,
+ @pw, CONVERT(NVARCHAR(36), NEWID()), CONVERT(NVARCHAR(36), NEWID()), N'0987654301', 0, 0, NULL, 1, 0),
+
+(N'20000000-0000-0000-0000-000000000005', N'Phạm Quốc Bảo', '2003-11-02', NULL, 1, '2026-02-10T08:00:00',
+ N'tenant2@nestu.vn', N'TENANT2@NESTU.VN', N'tenant2@nestu.vn', N'TENANT2@NESTU.VN', 1,
+ @pw, CONVERT(NVARCHAR(36), NEWID()), CONVERT(NVARCHAR(36), NEWID()), N'0987654302', 0, 0, NULL, 1, 0),
+
+(N'20000000-0000-0000-0000-000000000006', N'Hoàng Thu Trang', '2005-07-25', NULL, 1, '2026-04-01T08:00:00',
+ N'tenant3@nestu.vn', N'TENANT3@NESTU.VN', N'tenant3@nestu.vn', N'TENANT3@NESTU.VN', 1,
+ @pw, CONVERT(NVARCHAR(36), NEWID()), CONVERT(NVARCHAR(36), NEWID()), N'0987654303', 0, 0, NULL, 1, 0),
+
+(N'20000000-0000-0000-0000-000000000007', N'Vũ Đức Huy', '2003-01-30', NULL, 1, '2025-08-15T08:00:00',
+ N'tenant4@nestu.vn', N'TENANT4@NESTU.VN', N'tenant4@nestu.vn', N'TENANT4@NESTU.VN', 1,
+ @pw, CONVERT(NVARCHAR(36), NEWID()), CONVERT(NVARCHAR(36), NEWID()), N'0987654304', 0, 0, NULL, 1, 0),
+
+-- Tài khoản bị khóa (IsActive = 0) để demo chức năng Admin
+(N'20000000-0000-0000-0000-000000000008', N'Đỗ Ngọc Lan', '2004-12-12', NULL, 0, '2026-03-01T08:00:00',
+ N'tenant5@nestu.vn', N'TENANT5@NESTU.VN', N'tenant5@nestu.vn', N'TENANT5@NESTU.VN', 1,
+ @pw, CONVERT(NVARCHAR(36), NEWID()), CONVERT(NVARCHAR(36), NEWID()), N'0987654305', 0, 0, NULL, 1, 0);
+GO
+
+-- 3.3. UserRoles
+INSERT INTO AspNetUserRoles (UserId, RoleId) VALUES
+(N'20000000-0000-0000-0000-000000000001', N'10000000-0000-0000-0000-000000000001'), -- Admin
+(N'20000000-0000-0000-0000-000000000002', N'10000000-0000-0000-0000-000000000002'), -- Landlord
+(N'20000000-0000-0000-0000-000000000003', N'10000000-0000-0000-0000-000000000002'), -- Landlord
+(N'20000000-0000-0000-0000-000000000004', N'10000000-0000-0000-0000-000000000003'), -- Tenant
+(N'20000000-0000-0000-0000-000000000005', N'10000000-0000-0000-0000-000000000003'),
+(N'20000000-0000-0000-0000-000000000006', N'10000000-0000-0000-0000-000000000003'),
+(N'20000000-0000-0000-0000-000000000007', N'10000000-0000-0000-0000-000000000003'),
+(N'20000000-0000-0000-0000-000000000008', N'10000000-0000-0000-0000-000000000003');
+GO
+
+-- 3.4. BoardingHouses
+SET IDENTITY_INSERT BoardingHouses ON;
+INSERT INTO BoardingHouses
+(Id, OwnerId, Name, Address, Ward, District, City, Description, ElectricPrice, WaterPrice, ApprovalStatus, IsActive, CreatedAt)
+VALUES
+(1, N'20000000-0000-0000-0000-000000000002', N'Nhà trọ Hòa Bình', N'Số 12 ngõ 45 Nguyễn Trãi', N'Thượng Đình', N'Thanh Xuân', N'Hà Nội',
+    N'Gần các trường đại học khu Thanh Xuân, có chỗ để xe, camera an ninh, giờ giấc tự do.', 3500, 20000, 1, 1, '2026-01-10T09:00:00'),
+(2, N'20000000-0000-0000-0000-000000000002', N'Nhà trọ Sinh Viên Xanh', N'Số 8 ngách 20 ngõ 91 Chùa Láng', N'Láng Thượng', N'Đống Đa', N'Hà Nội',
+    N'Khu yên tĩnh, có máy giặt chung, wifi tốc độ cao.', 3800, 25000, 1, 1, '2026-01-15T09:00:00'),
+(3, N'20000000-0000-0000-0000-000000000003', N'Nhà trọ An Khang', N'Số 25 ngõ 1 Trần Quốc Hoàn', N'Dịch Vọng Hậu', N'Cầu Giấy', N'Hà Nội',
+    N'Phòng mới xây, có thang máy, điều hòa, nóng lạnh.', 4000, 30000, 1, 1, '2026-02-01T09:00:00'),
+(4, N'20000000-0000-0000-0000-000000000003', N'Nhà trọ Minh Châu', N'Số 3 ngõ 88 Kim Giang', N'Đại Kim', N'Hoàng Mai', N'Hà Nội',
+    N'Nhà trọ mới đăng, đang chờ Admin duyệt.', 3500, 20000, 0, 1, '2026-09-20T09:00:00');
+SET IDENTITY_INSERT BoardingHouses OFF;
+GO
+
+-- 3.5. Rooms
+SET IDENTITY_INSERT Rooms ON;
+INSERT INTO Rooms (Id, BoardingHouseId, RoomNumber, Floor, Area, Price, MaxOccupants, Status, Description, CreatedAt) VALUES
+-- Nhà trọ Hòa Bình
+(1,  1, N'101', 1, 20.00, 2500000, 2, 1, N'Phòng có cửa sổ, vệ sinh khép kín.',            '2026-01-10T10:00:00'),
+(2,  1, N'102', 1, 18.00, 2200000, 2, 0, N'Phòng thoáng, gần cầu thang.',                  '2026-01-10T10:00:00'),
+(3,  1, N'103', 1, 25.00, 3000000, 3, 0, N'Phòng rộng, có gác xép.',                        '2026-01-10T10:00:00'),
+(4,  1, N'201', 2, 20.00, 2600000, 2, 1, N'Phòng có ban công.',                             '2026-01-10T10:00:00'),
+(5,  1, N'202', 2, 15.00, 1800000, 1, 2, N'Đang sửa chữa hệ thống điện.',                   '2026-01-10T10:00:00'),
+-- Nhà trọ Sinh Viên Xanh
+(6,  2, N'A1',  1, 16.00, 2000000, 2, 0, N'Phòng tiêu chuẩn.',                              '2026-01-15T10:00:00'),
+(7,  2, N'A2',  1, 16.00, 2000000, 2, 1, N'Phòng tiêu chuẩn.',                              '2026-01-15T10:00:00'),
+(8,  2, N'A3',  1, 22.00, 2800000, 3, 0, N'Có bếp riêng.',                                  '2026-01-15T10:00:00'),
+(9,  2, N'B1',  2, 30.00, 3500000, 4, 0, N'Phòng lớn phù hợp nhóm bạn.',                    '2026-01-15T10:00:00'),
+(10, 2, N'B2',  2, 12.00, 1500000, 1, 0, N'Phòng nhỏ giá rẻ cho 1 người.',                  '2026-01-15T10:00:00'),
+-- Nhà trọ An Khang
+(11, 3, N'P101', 1, 20.00, 3200000, 2, 0, N'Đầy đủ nội thất.',                              '2026-02-01T10:00:00'),
+(12, 3, N'P102', 1, 25.00, 3800000, 3, 0, N'Đầy đủ nội thất, có máy giặt riêng.',           '2026-02-01T10:00:00'),
+(13, 3, N'P201', 2, 28.00, 4200000, 3, 0, N'Phòng góc, 2 cửa sổ.',                          '2026-02-01T10:00:00'),
+(14, 3, N'P202', 2, 18.00, 2900000, 2, 0, N'Phòng yên tĩnh.',                               '2026-02-01T10:00:00'),
+(15, 3, N'P301', 3, 35.00, 4800000, 4, 0, N'Căn studio, có phòng khách nhỏ.',               '2026-02-01T10:00:00'),
+-- Nhà trọ Minh Châu (chưa duyệt → Guest không thấy)
+(16, 4, N'1',   1, 14.00, 1600000, 1, 0, NULL,                                               '2026-09-20T10:00:00'),
+(17, 4, N'2',   1, 14.00, 1600000, 1, 0, NULL,                                               '2026-09-20T10:00:00'),
+(18, 4, N'3',   2, 20.00, 2300000, 2, 0, NULL,                                               '2026-09-20T10:00:00');
+SET IDENTITY_INSERT Rooms OFF;
+GO
+
+-- 3.6. RoomImages
+INSERT INTO RoomImages (RoomId, ImageUrl, IsThumbnail) VALUES
+(1,  N'/images/rooms/room-1-1.jpg', 1), (1,  N'/images/rooms/room-1-2.jpg', 0),
+(2,  N'/images/rooms/room-2-1.jpg', 1),
+(3,  N'/images/rooms/room-3-1.jpg', 1), (3,  N'/images/rooms/room-3-2.jpg', 0),
+(6,  N'/images/rooms/room-6-1.jpg', 1),
+(8,  N'/images/rooms/room-8-1.jpg', 1),
+(9,  N'/images/rooms/room-9-1.jpg', 1),
+(11, N'/images/rooms/room-11-1.jpg', 1),
+(12, N'/images/rooms/room-12-1.jpg', 1),
+(15, N'/images/rooms/room-15-1.jpg', 1), (15, N'/images/rooms/room-15-2.jpg', 0);
+GO
+
+-- 3.7. RentalRequests
+SET IDENTITY_INSERT RentalRequests ON;
+INSERT INTO RentalRequests (Id, RoomId, TenantId, DesiredStartDate, Message, Status, ResponseNote, CreatedAt, RespondedAt) VALUES
+(1, 1,  N'20000000-0000-0000-0000-000000000004', '2026-03-01', N'Em là sinh viên năm 3, muốn thuê lâu dài.', 1, N'Đồng ý, mời em qua ký hợp đồng.', '2026-02-10T09:00:00', '2026-02-12T10:00:00'),
+(2, 4,  N'20000000-0000-0000-0000-000000000005', '2026-03-15', N'Cho em thuê phòng có ban công ạ.',          1, N'Đồng ý.',                          '2026-03-01T09:00:00', '2026-03-02T10:00:00'),
+(3, 7,  N'20000000-0000-0000-0000-000000000006', '2026-05-01', NULL,                                          1, N'Đồng ý.',                          '2026-04-15T09:00:00', '2026-04-16T10:00:00'),
+(4, 13, N'20000000-0000-0000-0000-000000000007', '2025-09-01', N'Em thuê đến hết kỳ học.',                   1, N'Đồng ý.',                          '2025-08-20T09:00:00', '2025-08-21T10:00:00'),
+(5, 1,  N'20000000-0000-0000-0000-000000000007', '2026-03-01', N'Em muốn thuê phòng 101.',                   2, N'Phòng đã có người thuê.',          '2026-02-11T09:00:00', '2026-02-12T10:00:00'),
+(6, 3,  N'20000000-0000-0000-0000-000000000007', '2026-10-15', N'Em muốn thuê từ giữa tháng 10.',            0, NULL,                                '2026-09-25T09:00:00', NULL),
+(7, 11, N'20000000-0000-0000-0000-000000000007', '2026-10-15', N'Phòng còn trống không ạ?',                  0, NULL,                                '2026-09-26T09:00:00', NULL),
+(8, 9,  N'20000000-0000-0000-0000-000000000006', '2026-09-01', N'Em thuê cùng nhóm bạn.',                    3, NULL,                                '2026-08-10T09:00:00', NULL);
+SET IDENTITY_INSERT RentalRequests OFF;
+GO
+
+-- 3.8. Contracts
+SET IDENTITY_INSERT Contracts ON;
+INSERT INTO Contracts (Id, RoomId, TenantId, RentalRequestId, StartDate, EndDate, MonthlyRent, Deposit, Status, CreatedAt) VALUES
+(1, 1,  N'20000000-0000-0000-0000-000000000004', 1, '2026-03-01', '2027-02-28', 2500000, 2500000, 0, '2026-02-12T10:30:00'),
+(2, 4,  N'20000000-0000-0000-0000-000000000005', 2, '2026-03-15', '2027-03-14', 2600000, 2600000, 0, '2026-03-02T10:30:00'),
+(3, 7,  N'20000000-0000-0000-0000-000000000006', 3, '2026-05-01', '2026-12-31', 2000000, 2000000, 0, '2026-04-16T10:30:00'),
+(4, 13, N'20000000-0000-0000-0000-000000000007', 4, '2025-09-01', '2026-06-30', 4200000, 4200000, 1, '2025-08-21T10:30:00');
+SET IDENTITY_INSERT Contracts OFF;
+GO
+
+-- 3.9. UtilityReadings (tháng 7, 8, 9/2026 cho 3 phòng đang thuê)
+SET IDENTITY_INSERT UtilityReadings ON;
+INSERT INTO UtilityReadings (Id, RoomId, [Month], [Year], ElectricOld, ElectricNew, WaterOld, WaterNew, RecordedAt) VALUES
+(1, 1, 7, 2026, 1200, 1320, 50, 56, '2026-07-31T18:00:00'),
+(2, 1, 8, 2026, 1320, 1450, 56, 62, '2026-08-31T18:00:00'),
+(3, 1, 9, 2026, 1450, 1565, 62, 67, '2026-09-29T18:00:00'),
+(4, 4, 7, 2026,  800,  905, 30, 35, '2026-07-31T18:00:00'),
+(5, 4, 8, 2026,  905, 1010, 35, 40, '2026-08-31T18:00:00'),
+(6, 4, 9, 2026, 1010, 1120, 40, 44, '2026-09-29T18:00:00'),
+(7, 7, 7, 2026,  300,  380, 10, 14, '2026-07-31T18:00:00'),
+(8, 7, 8, 2026,  380,  470, 14, 18, '2026-08-31T18:00:00'),
+(9, 7, 9, 2026,  470,  550, 18, 22, '2026-09-29T18:00:00');
+SET IDENTITY_INSERT UtilityReadings OFF;
+GO
+
+-- 3.10. Invoices
+-- ElectricFee = số điện × ElectricPrice ; WaterFee = số nước × WaterPrice
+-- TotalAmount = RoomFee + ElectricFee + WaterFee + OtherFee (OtherFee 150.000 = wifi + rác)
+SET IDENTITY_INSERT Invoices ON;
+INSERT INTO Invoices (Id, ContractId, UtilityReadingId, [Month], [Year], RoomFee, ElectricFee, WaterFee, OtherFee, TotalAmount, Status, DueDate, PaidAt, Note, CreatedAt) VALUES
+-- Hợp đồng 1 - phòng 101 (điện 3.500, nước 20.000)
+(1, 1, 1, 7, 2026, 2500000, 420000, 120000, 150000, 3190000, 1, '2026-08-05', '2026-08-03T20:00:00', NULL, '2026-08-01T08:00:00'),
+(2, 1, 2, 8, 2026, 2500000, 455000, 120000, 150000, 3225000, 1, '2026-09-05', '2026-09-04T19:30:00', NULL, '2026-09-01T08:00:00'),
+(3, 1, 3, 9, 2026, 2500000, 402500, 100000, 150000, 3152500, 0, '2026-10-05', NULL, NULL, '2026-09-30T08:00:00'),
+-- Hợp đồng 2 - phòng 201 (điện 3.500, nước 20.000)
+(4, 2, 4, 7, 2026, 2600000, 367500, 100000, 150000, 3217500, 1, '2026-08-05', '2026-08-05T21:00:00', NULL, '2026-08-01T08:00:00'),
+(5, 2, 5, 8, 2026, 2600000, 367500, 100000, 150000, 3217500, 2, '2026-09-05', NULL, N'Quá hạn thanh toán.', '2026-09-01T08:00:00'),
+(6, 2, 6, 9, 2026, 2600000, 385000,  80000, 150000, 3215000, 0, '2026-10-05', NULL, NULL, '2026-09-30T08:00:00'),
+-- Hợp đồng 3 - phòng A2 (điện 3.800, nước 25.000)
+(7, 3, 7, 7, 2026, 2000000, 304000, 100000, 150000, 2554000, 1, '2026-08-05', '2026-08-02T18:00:00', NULL, '2026-08-01T08:00:00'),
+(8, 3, 8, 8, 2026, 2000000, 342000, 100000, 150000, 2592000, 1, '2026-09-05', '2026-09-03T18:00:00', NULL, '2026-09-01T08:00:00'),
+(9, 3, 9, 9, 2026, 2000000, 304000, 100000, 150000, 2554000, 0, '2026-10-05', NULL, NULL, '2026-09-30T08:00:00');
+SET IDENTITY_INSERT Invoices OFF;
+GO
+
+-- 3.11. MaintenanceRequests
+INSERT INTO MaintenanceRequests (RoomId, TenantId, Title, Description, Priority, Status, LandlordNote, CreatedAt, ResolvedAt) VALUES
+(1, N'20000000-0000-0000-0000-000000000004', N'Vòi nước bồn rửa bị rỉ',    N'Vòi nước ở bồn rửa mặt bị rỉ liên tục, tốn nước.',        1, 2, N'Đã thay vòi mới.',                       '2026-06-10T20:00:00', '2026-06-12T10:00:00'),
+(4, N'20000000-0000-0000-0000-000000000005', N'Bóng đèn nhà vệ sinh hỏng', N'Bóng đèn nhà vệ sinh không sáng từ hôm qua.',             0, 1, N'Đã mua bóng, sẽ thay trong tuần.',       '2026-09-27T21:00:00', NULL),
+(7, N'20000000-0000-0000-0000-000000000006', N'Điều hòa không mát',        N'Điều hòa chạy nhưng không ra hơi lạnh, có tiếng kêu to.', 2, 0, NULL,                                      '2026-09-29T22:00:00', NULL),
+(1, N'20000000-0000-0000-0000-000000000004', N'Cửa sổ bị kẹt',             N'Cửa sổ khó đóng mở.',                                     0, 3, N'Cửa bình thường, cần kéo mạnh tay hơn.', '2026-07-01T19:00:00', NULL);
+GO
+
+/* =====================================================================
+   PHẦN 4: KIỂM TRA NHANH
+   ===================================================================== */
+SELECT N'AspNetRoles' AS [Bảng], COUNT(*) AS [Số dòng] FROM AspNetRoles
+UNION ALL SELECT N'AspNetUsers',         COUNT(*) FROM AspNetUsers
+UNION ALL SELECT N'AspNetUserRoles',     COUNT(*) FROM AspNetUserRoles
+UNION ALL SELECT N'BoardingHouses',      COUNT(*) FROM BoardingHouses
+UNION ALL SELECT N'Rooms',               COUNT(*) FROM Rooms
+UNION ALL SELECT N'RoomImages',          COUNT(*) FROM RoomImages
+UNION ALL SELECT N'RentalRequests',      COUNT(*) FROM RentalRequests
+UNION ALL SELECT N'Contracts',           COUNT(*) FROM Contracts
+UNION ALL SELECT N'UtilityReadings',     COUNT(*) FROM UtilityReadings
+UNION ALL SELECT N'Invoices',            COUNT(*) FROM Invoices
+UNION ALL SELECT N'MaintenanceRequests', COUNT(*) FROM MaintenanceRequests;
+GO
+```

@@ -1,6 +1,6 @@
 ﻿# Kế hoạch dự án PRN232 – Quản lý cửa hàng cho thuê xe máy (MotoRent)
 
-> Nhóm 3 dev · Bắt đầu: **Tuần 4** · Hoàn thành: **Tuần 9** (6 tuần) · Cập nhật: 04/10/2026
+> Nhóm 3 dev · Còn lại: **Tuần 5 → Tuần 9** (5 tuần, 05/10 – 08/11/2026) · Cập nhật: 04/10/2026
 
 ---
 
@@ -136,51 +136,53 @@ Nguyên tắc: **mỗi người sở hữu module từ đầu đến cuối (API
 
 ---
 
-## 5. Timeline chi tiết (Tuần 4 → Tuần 9)
+## 5. Timeline chi tiết (Tuần 5 → Tuần 9, còn 5 tuần)
 
-### Tuần 4 – Phân tích & nền móng *(đang ở đây)*
-| Ai | Việc | Output |
+> Tuần 4 đã hết, mới xong **database + kế hoạch**. Phần còn lại của tuần 4 (khung solution, use case) dồn vào **2 ngày đầu tuần 5**.
+> Đã cắt bớt: Refresh token → tuỳ chọn (chỉ làm nếu dư thời gian).
+
+| Tuần | Thời gian | Mốc phải đạt |
 |---|---|---|
-| Cả nhóm | Chốt đề tài, actors, use case, endpoint (mục 1, 3), hỏi GV về Identity | Use case diagram |
-| Dev 1 | Chạy `MotorbikeRentalDB.sql`, tạo repo + solution, scaffold, Swagger, `CLAUDE.md` | Repo chạy được |
-| Dev 2 | ERD (mermaid trong file giải thích DB), viết DTO cho Brand/Category/Motorbike | DTO folder |
-| Dev 3 | Wireframe các trang (Figma/giấy), `_Layout` + Bootstrap | Giao diện khung |
+| 5 | 05/10 – 11/10 | Khung chạy được, CRUD danh mục + JWT trên Swagger |
+| 6 | 12/10 – 18/10 | Ráp WebApp ↔ API, khách đặt được đơn, Staff duyệt được |
+| 7 | 19/10 – 25/10 | **Feature complete** |
+| 8 | 26/10 – 01/11 | Test, sửa lỗi, **code freeze** cuối tuần |
+| 9 | 02/11 – 08/11 | Báo cáo, slide, demo |
 
-**Mốc:** Cuối tuần 4 – mọi người clone về, chạy API (Swagger) & WebApp được.
+### Tuần 5 – Nền móng + Auth + CRUD *(gánh thêm phần tuần 4)*
+| Ai | Ngày 1–2 (T2–T3) | Ngày 3–7 |
+|---|---|---|
+| Dev 1 | **Dựng solution 5 project, scaffold DbContext, Swagger, `CLAUDE.md` → push `develop` (ưu tiên số 1)** | JWT + BCrypt + role, `ExceptionMiddleware`, `ApiResponse<T>` |
+| Dev 2 | Viết DTO + Validation Brand/Category/Motorbike | CRUD Brands, Categories, Motorbikes (chưa gắn `[Authorize]`) |
+| Dev 3 | Use case diagram + actors (cho báo cáo), wireframe | `_Layout`, Bootstrap, Partial (`_Alert`, `_MotorbikeCard`, `_Pagination`), trang Login/Register (giao diện) |
+| Cả nhóm | Hỏi GV tiêu chí 2.7 Identity | |
 
-### Tuần 5 – Auth + CRUD danh mục
+**Mốc cuối tuần 5:** clone về chạy được; Swagger login lấy token, CRUD danh mục chạy.
+
+### Tuần 6 – Ráp nối + nghiệp vụ chính
 | Ai | Việc |
 |---|---|
-| Dev 1 | Auth API (JWT, BCrypt, role), ExceptionMiddleware, `ApiResponse` |
-| Dev 2 | CRUD Brands, Categories, Motorbikes (API + Validation) |
-| Dev 3 | Partial/TagHelper dùng chung, trang Login/Register (giao diện), trang danh sách xe tĩnh |
+| Dev 1 | WebApp: Cookie Auth + `ApiClient`; Users (Admin), Branches; gắn `[Authorize(Roles)]` cùng mọi người |
+| Dev 2 | OData Motorbikes & Rentals, API xe trống theo ngày, WebApp danh sách / chi tiết xe |
+| Dev 3 | Rentals API: tạo đơn (check trùng lịch), confirm, pickup, return, cancel (transaction) |
 
-**Mốc:** Login bằng Swagger lấy token, gọi API có phân quyền.
-
-### Tuần 6 – Nghiệp vụ chính
-| Ai | Việc |
-|---|---|
-| Dev 1 | WebApp: Cookie Auth + ApiClient, Users admin, Branches |
-| Dev 2 | OData Motorbikes & Rentals, API xe trống, WebApp danh sách/chi tiết xe gọi OData |
-| Dev 3 | Rentals API: tạo đơn, confirm, pickup, return, cancel |
-
-**Mốc (giữa kỳ nội bộ):** khách đặt được 1 đơn trên WebApp, Staff duyệt được.
+**Mốc:** khách đặt được 1 đơn trên WebApp, Staff duyệt được.
 
 ### Tuần 7 – Hoàn thiện module
 | Ai | Việc |
 |---|---|
-| Dev 1 | Payments API + UI, Dashboard (view thống kê + Chart.js) |
-| Dev 2 | Maintenance API + UI, Admin quản lý xe (upload ảnh) |
+| Dev 1 | Payments API + UI, Dashboard (view thống kê + Chart.js); hỗ trợ Dev 3 phần thanh toán khi trả xe |
+| Dev 2 | Maintenance API + UI, Admin quản lý xe (upload ảnh), Postman collection |
 | Dev 3 | WebApp Rentals cho Customer & Staff, Reviews |
 
 **Mốc:** **Feature complete** – tất cả chức năng chạy end-to-end.
 
-### Tuần 8 – Test, sửa lỗi, đánh bóng
+### Tuần 8 – Test, sửa lỗi, bắt đầu báo cáo
 | Ai | Việc |
 |---|---|
-| Dev 1 | Kiểm thử phân quyền (mỗi role thử gọi API không được phép), refresh token (nếu kịp), review code toàn bộ |
-| Dev 2 | Postman collection đầy đủ + test validate (dữ liệu sai → 400), test OData |
-| Dev 3 | Responsive (mobile), thông báo lỗi thân thiện, bắt đầu chụp màn hình & viết báo cáo |
+| Dev 1 | Test phân quyền từng role, review code toàn bộ, refresh token (nếu kịp) |
+| Dev 2 | Test validate (dữ liệu sai → 400), test OData, hoàn thiện Postman |
+| Dev 3 | Responsive mobile, thông báo lỗi thân thiện, chụp màn hình + viết khung báo cáo |
 
 **Mốc:** Code freeze cuối tuần 8 (chỉ sửa bug).
 
@@ -188,7 +190,19 @@ Nguyên tắc: **mỗi người sở hữu module từ đầu đến cuối (API
 | Ai | Việc |
 |---|---|
 | Cả nhóm | Hoàn thành báo cáo (mục 7), slide, quay video demo dự phòng |
-| Cả nhóm | **Demo thử 2 lần**, mỗi người tự giải thích code module mình **và** 1 module người khác |
+| Cả nhóm | **Demo thử 2 lần**, mỗi người giải thích module mình **và** 1 module người khác |
+
+### Phụ thuộc giữa các thành viên
+| Phải có trước | Ai làm | Ai chờ | Cách để không phải chờ |
+|---|---|---|---|
+| Khung solution + DbContext | Dev 1 | Dev 2, Dev 3 | Dev 1 xong trong **T2–T3 tuần 5**; trong lúc đó Dev 2 viết DTO, Dev 3 làm use case/wireframe |
+| JWT + Authorize | Dev 1 | Dev 2, Dev 3 | Viết controller chưa gắn `[Authorize]`, cuối tuần 5 gắn sau |
+| `ApiClient` + Login WebApp | Dev 1 | Dev 2, Dev 3 (trang MVC) | Tạm dùng dữ liệu giả trong MVC controller |
+| `_Layout` + Partial | Dev 3 | Dev 1, Dev 2 | Dùng layout mặc định, đổi sau |
+| API Motorbikes / xe trống | Dev 2 | Dev 3 | Dùng 15 xe có sẵn trong DB mẫu |
+| Rentals API (trả xe) | Dev 3 | Dev 1 (Payments) | Payments làm độc lập trước, tuần 7 ráp |
+
+Quy tắc Git: Dev 1 push khung lên `develop` trước → mọi người tạo `feature/*` từ đó → pull `develop` mỗi 2–3 ngày.
 
 ### Họp nhóm
 - **Daily 10 phút** (chat): Hôm qua làm gì / hôm nay / vướng gì.

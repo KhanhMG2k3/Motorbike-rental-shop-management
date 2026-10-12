@@ -11,7 +11,7 @@
 | Backend | ASP.NET Core **Web API** (.NET 8), EF Core 8 (Database-First), SQL Server |
 | Bảo mật API | **JWT Bearer** + `[Authorize(Roles = "...")]` (Admin / Staff / Customer) |
 | Tìm kiếm | **OData** (`Microsoft.AspNetCore.OData`) cho Motorbikes, Rentals |
-| Validation | DataAnnotations hoặc FluentValidation trên **DTO**; AutoMapper Entity ↔ DTO |
+| Validation | DataAnnotations trên **DTO**; map Entity ↔ DTO thủ công (không dùng AutoMapper: bản miễn phí có lỗ hổng bảo mật, bản vá phải trả phí) |
 | Frontend | ASP.NET Core **MVC** + Bootstrap 5 (responsive), **TagHelper, PartialView, ViewComponent** |
 | Gọi API | `IHttpClientFactory` + typed client `ApiClient` tự gắn JWT |
 | Phân quyền WebApp | **Cookie Authentication + ClaimsIdentity** (đọc role từ JWT) → `[Authorize(Roles=...)]` |
@@ -39,7 +39,7 @@
 MotoRent.sln
 ├── MotoRent.BusinessObjects   // Entities (scaffold), DTOs, Enums, Constants
 ├── MotoRent.DataAccess        // MotorbikeRentalContext, Repositories (IRepository<T>, UnitOfWork tuỳ chọn)
-├── MotoRent.Services          // Business logic: AuthService, RentalService, ... + Validators + AutoMapper Profiles
+├── MotoRent.Services          // Business logic: AuthService, RentalService, ... + Mappings (map thủ công)
 ├── MotoRent.API               // Controllers, OData, JWT, Swagger, Middleware xử lý lỗi
 └── MotoRent.WebApp            // MVC: Controllers, Views, Partial, ViewComponents, ApiClient
 ```
@@ -98,7 +98,7 @@ Nguyên tắc: **mỗi người sở hữu module từ đầu đến cuối (API
 
 | Module | Việc cụ thể |
 |---|---|
-| Setup | Tạo solution 5 project, scaffold DbContext, DI, AutoMapper, Swagger + JWT, `ApiResponse`, `ExceptionMiddleware`, `CLAUDE.md` |
+| Setup | Tạo solution 5 project, scaffold DbContext, DI, Swagger + JWT, `ApiResponse`, `ExceptionMiddleware`, `CLAUDE.md` |
 | Auth & Users | Register/Login/Me/ChangePassword, JWT + role claims, Admin quản lý tài khoản |
 | WebApp Auth | Trang Login/Register/Profile, Cookie Auth lưu JWT, `ApiClient` (DelegatingHandler gắn Bearer token), xử lý 401 → về Login |
 | Branches | CRUD API + trang Admin |
@@ -118,7 +118,7 @@ Nguyên tắc: **mỗi người sở hữu module từ đầu đến cuối (API
 | WebApp Motorbikes | Trang danh sách xe (lọc: hãng, loại, giá, chi nhánh → gọi OData), phân trang, trang chi tiết xe |
 | Maintenance | API + trang quản lý bảo dưỡng (Staff/Admin) |
 
-**Kỹ năng cần nắm:** OData query options, FluentValidation/DataAnnotations, AutoMapper, LINQ.
+**Kỹ năng cần nắm:** OData query options, DataAnnotations, map DTO thủ công, LINQ.
 
 ### 👤 Dev 3 – Rental Workflow & Frontend Lead
 **Trách nhiệm chung:** giao diện chung (Layout, Bootstrap responsive, TagHelper, Partial/ViewComponent), báo cáo & chụp màn hình.
@@ -148,6 +148,16 @@ Nguyên tắc: **mỗi người sở hữu module từ đầu đến cuối (API
 | 7 | 19/10 – 25/10 | **Feature complete** |
 | 8 | 26/10 – 01/11 | Test, sửa lỗi, **code freeze** cuối tuần |
 | 9 | 02/11 – 08/11 | Báo cáo, slide, demo |
+
+### ✅ Tiến độ thực tế (cập nhật 12/10)
+| Việc | Người làm | Trạng thái |
+|---|---|---|
+| Khung solution 5 project, scaffold DbContext, Swagger, `ApiResponse`, `ExceptionMiddleware`, `CLAUDE.md`, README | Đạt (Dev 2) làm thay Dev 1 | ✅ Xong – nhánh `develop` |
+| CRUD Brands, Categories, Motorbikes (DTO + Validation + Service + API) | Đạt (Dev 2) | ✅ Xong |
+| OData `/odata/Motorbikes`, `/odata/Rentals`, API xe trống `/api/motorbikes/available` | Đạt (Dev 2) | ✅ Xong |
+| WebApp: danh sách xe (lọc, sắp xếp, phân trang), chi tiết xe + kiểm tra lịch trống, partial `_MotorbikeCard`, `_Pagination` | Đạt (Dev 2) | ✅ Xong |
+| JWT, Login, Cookie Auth WebApp, gắn `[Authorize]` vào các chỗ `TODO (Dev 1)` | Dev 1 | ⏳ Chưa làm |
+| Rentals API + UI | Dev 3 | ⏳ Chưa làm |
 
 ### Tuần 5 – Nền móng + Auth + CRUD *(gánh thêm phần tuần 4)*
 | Ai | Ngày 1–2 (T2–T3) | Ngày 3–7 |

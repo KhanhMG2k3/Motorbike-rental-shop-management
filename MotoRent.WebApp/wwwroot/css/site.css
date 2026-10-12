@@ -1,0 +1,44 @@
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  margin-bottom: 60px;
+}
+
+/* ===== Xe máy ===== */
+.bike-card-img {
+  height: 180px;
+  object-fit: cover;
+  background-color: #f1f3f5;
+}
+
+.bike-detail-img {
+  width: 100%;
+  max-height: 380px;
+  object-fit: cover;
+  background-color: #f1f3f5;
+}
+
+.bike-card {
+  transition: box-shadow .15s ease-in-out;
+}
+
+.bike-card:hover {
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .12);
+}

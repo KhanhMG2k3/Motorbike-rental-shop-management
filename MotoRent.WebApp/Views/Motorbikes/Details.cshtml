@@ -1,0 +1,100 @@
+@model MotorbikeDetailViewModel
+@{
+    var bike = Model.Motorbike;
+    ViewData["Title"] = bike.ModelName;
+    var minDate = DateTime.Today.ToString("yyyy-MM-ddTHH:mm");
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Thuê xe</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@bike.ModelName</li>
+    </ol>
+</nav>
+
+<div class="row g-4">
+    <div class="col-12 col-md-6">
+        <img src="@(bike.ImageUrl ?? Url.Content("~/images/no-image.svg"))"
+             onerror="this.onerror=null;this.src='@Url.Content("~/images/no-image.svg")';"
+             class="rounded bike-detail-img" alt="@bike.ModelName" />
+    </div>
+
+    <div class="col-12 col-md-6">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h1 class="h3 mb-0">@bike.ModelName</h1>
+            <span class="badge @DisplayHelper.MotorbikeStatusBadge(bike.Status)">@DisplayHelper.MotorbikeStatusText(bike.Status)</span>
+        </div>
+        <p class="text-muted">
+            @bike.BrandName · @bike.CategoryName
+            @if (bike.AverageRating.HasValue)
+            {
+                <span class="ms-2">⭐ @bike.AverageRating.Value.ToString("0.0") (@bike.ReviewCount đánh giá)</span>
+            }
+        </p>
+
+        <p class="fs-3 fw-bold text-primary mb-1">@DisplayHelper.Money(bike.PricePerDay)<small class="fs-6 fw-normal text-muted">/ngày</small></p>
+        <p class="text-muted">Tiền cọc: <strong>@DisplayHelper.Money(bike.DepositAmount)</strong></p>
+
+        <table class="table table-sm">
+            <tbody>
+                <tr><th class="w-50">Biển số</th><td>@bike.LicensePlate</td></tr>
+                <tr><th>Năm sản xuất</th><td>@bike.ManufactureYear</td></tr>
+                <tr><th>Dung tích</th><td>@DisplayHelper.EngineText(bike.EngineCapacity)</td></tr>
+                <tr><th>Màu</th><td>@bike.Color</td></tr>
+                <tr><th>Số km đã đi</th><td>@bike.Odometer.ToString("N0") km</td></tr>
+                <tr><th>Chi nhánh</th><td>@bike.BranchName</td></tr>
+            </tbody>
+        </table>
+
+        @if (!string.IsNullOrWhiteSpace(bike.Description))
+        {
+            <p>@bike.Description</p>
+        }
+
+        <!-- Kiểm tra lịch trống -->
+        <form method="get" asp-action="Details" asp-route-id="@bike.MotorbikeId" class="card card-body bg-light">
+            <h2 class="h6">Kiểm tra lịch trống</h2>
+            <div class="row g-2">
+                <div class="col-12 col-sm-6">
+                    <label asp-for="StartDate" class="form-label small"></label>
+                    <input asp-for="StartDate" name="startDate" type="datetime-local" min="@minDate" class="form-control" required />
+                </div>
+                <div class="col-12 col-sm-6">
+                    <label asp-for="EndDate" class="form-label small"></label>
+                    <input asp-for="EndDate" name="endDate" type="datetime-local" min="@minDate" class="form-control" required />
+                </div>
+            </div>
+            <button type="submit" class="btn btn-outline-primary mt-2">Kiểm tra</button>
+
+            @if (Model.AvailabilityError != null)
+            {
+                <div class="alert alert-danger mt-3 mb-0">@Model.AvailabilityError</div>
+            }
+            else if (Model.IsAvailable == true)
+            {
+                <div class="alert alert-success mt-3 mb-0">
+                    ✅ Xe còn trống trong <strong>@Model.RentalDays ngày</strong>.
+                    Tạm tính: <strong>@DisplayHelper.Money(Model.EstimatedPrice)</strong> (chưa gồm cọc).
+                    @* TODO (Dev 3): nút "Đặt xe" chuyển sang trang tạo đơn thuê *@
+                </div>
+            }
+            else if (Model.IsAvailable == false)
+            {
+                <div class="alert alert-warning mt-3 mb-0">Xe đã có lịch thuê hoặc không cho thuê trong thời gian này. Vui lòng chọn ngày khác hoặc xe khác.</div>
+            }
+        </form>
+    </div>
+</div>
+
+@if (Model.SimilarMotorbikes.Any())
+{
+    <h2 class="h5 mt-5 mb-3">Xe cùng loại</h2>
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3">
+        @foreach (var item in Model.SimilarMotorbikes)
+        {
+            <div class="col">
+                <partial name="_MotorbikeCard" model="item" />
+            </div>
+        }
+    </div>
+}

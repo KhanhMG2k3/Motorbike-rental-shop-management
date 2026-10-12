@@ -1,0 +1,29 @@
+@model MotorbikeDto
+
+<div class="card h-100 bike-card">
+    <a asp-controller="Motorbikes" asp-action="Details" asp-route-id="@Model.MotorbikeId">
+        <img src="@(Model.ImageUrl ?? Url.Content("~/images/no-image.svg"))"
+             onerror="this.onerror=null;this.src='@Url.Content("~/images/no-image.svg")';"
+             class="card-img-top bike-card-img" alt="@Model.ModelName" loading="lazy" />
+    </a>
+    <div class="card-body d-flex flex-column">
+        <div class="d-flex justify-content-between align-items-start mb-1">
+            <h5 class="card-title mb-0">@Model.ModelName</h5>
+            <span class="badge @DisplayHelper.MotorbikeStatusBadge(Model.Status)">@DisplayHelper.MotorbikeStatusText(Model.Status)</span>
+        </div>
+        <p class="text-muted small mb-2">
+            @Model.BrandName · @Model.CategoryName · @DisplayHelper.EngineText(Model.EngineCapacity)
+        </p>
+        <p class="small mb-2">
+            <span class="me-2">📍 @Model.BranchName</span>
+            @if (Model.AverageRating.HasValue)
+            {
+                <span>⭐ @Model.AverageRating.Value.ToString("0.0") (@Model.ReviewCount)</span>
+            }
+        </p>
+        <div class="mt-auto d-flex justify-content-between align-items-center">
+            <span class="fs-5 fw-bold text-primary">@DisplayHelper.Money(Model.PricePerDay)<small class="fs-6 fw-normal text-muted">/ngày</small></span>
+            <a class="btn btn-outline-primary btn-sm" asp-controller="Motorbikes" asp-action="Details" asp-route-id="@Model.MotorbikeId">Chi tiết</a>
+        </div>
+    </div>
+</div>

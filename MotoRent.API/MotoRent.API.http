@@ -1,0 +1,130 @@
+@api = http://localhost:5001
+
+### ===== BRANDS =====
+GET {{api}}/api/brands
+
+###
+GET {{api}}/api/brands?includeInactive=true
+
+###
+GET {{api}}/api/brands/1
+
+### Thêm hãng
+POST {{api}}/api/brands
+Content-Type: application/json
+
+{
+  "brandName": "Kawasaki",
+  "country": "Nhật Bản"
+}
+
+### Lỗi validate (tên rỗng) → 400
+POST {{api}}/api/brands
+Content-Type: application/json
+
+{
+  "brandName": ""
+}
+
+### Trùng tên → 409
+POST {{api}}/api/brands
+Content-Type: application/json
+
+{
+  "brandName": "Honda"
+}
+
+### Ngừng hãng còn xe → 400
+DELETE {{api}}/api/brands/1
+
+
+### ===== CATEGORIES =====
+GET {{api}}/api/categories
+
+###
+PUT {{api}}/api/categories/4
+Content-Type: application/json
+
+{
+  "categoryName": "Xe điện",
+  "description": "Xe máy điện, không cần xăng",
+  "isActive": true
+}
+
+
+### ===== MOTORBIKES =====
+GET {{api}}/api/motorbikes/3
+
+### Không tồn tại → 404
+GET {{api}}/api/motorbikes/999
+
+### Xe trống từ 20/10 đến 22/10, loại tay ga
+GET {{api}}/api/motorbikes/available?startDate=2026-10-20T08:00&endDate=2026-10-22T08:00&categoryId=2
+
+### Ngày trả trước ngày nhận → 400
+GET {{api}}/api/motorbikes/available?startDate=2026-10-22T08:00&endDate=2026-10-20T08:00
+
+### Thêm xe
+POST {{api}}/api/motorbikes
+Content-Type: application/json
+
+{
+  "licensePlate": "59A1-999.99",
+  "modelName": "Honda Lead 125",
+  "brandId": 1,
+  "categoryId": 2,
+  "branchId": 1,
+  "manufactureYear": 2025,
+  "engineCapacity": 125,
+  "color": "Bạc",
+  "pricePerDay": 160000,
+  "depositAmount": 2000000,
+  "odometer": 100,
+  "description": "Cốp rộng, tiết kiệm xăng"
+}
+
+### Dữ liệu sai nhiều trường → 400 kèm danh sách lỗi
+POST {{api}}/api/motorbikes
+Content-Type: application/json
+
+{
+  "licensePlate": "abc",
+  "modelName": "X",
+  "brandId": 0,
+  "categoryId": 1,
+  "branchId": 1,
+  "manufactureYear": 1990,
+  "color": "Đỏ",
+  "pricePerDay": 5
+}
+
+### Đổi trạng thái xe đang thuê → 400
+PATCH {{api}}/api/motorbikes/2/status
+Content-Type: application/json
+
+{
+  "status": "Inactive"
+}
+
+
+### ===== ODATA =====
+### Xe tay ga còn trống, giá <= 200k, sắp xếp theo giá, đếm tổng
+GET {{api}}/odata/Motorbikes?$filter=Status eq 'Available' and PricePerDay le 200000 and CategoryName eq 'Xe tay ga'&$orderby=PricePerDay&$count=true
+
+### Tìm theo tên (không phân biệt hoa thường)
+GET {{api}}/odata/Motorbikes?$filter=contains(tolower(ModelName),'honda')&$select=MotorbikeId,ModelName,PricePerDay,Status
+
+### Xe đánh giá cao nhất
+GET {{api}}/odata/Motorbikes?$filter=AverageRating ne null&$orderby=AverageRating desc&$top=5
+
+### Phân trang: trang 2, mỗi trang 6 xe
+GET {{api}}/odata/Motorbikes?$orderby=PricePerDay&$top=6&$skip=6&$count=true
+
+### Đơn đang thuê
+GET {{api}}/odata/Rentals?$filter=Status eq 'Renting'&$orderby=ExpectedReturnDate
+
+### Tìm đơn theo SĐT khách hoặc mã đơn
+GET {{api}}/odata/Rentals?$filter=contains(CustomerPhone,'0933') or contains(RentalCode,'0003')
+
+### Doanh thu đơn đã hoàn thành tại chi nhánh 1
+GET {{api}}/odata/Rentals?$filter=Status eq 'Completed' and BranchId eq 1&$select=RentalCode,CustomerName,TotalAmount

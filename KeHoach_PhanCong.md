@@ -149,13 +149,17 @@ Nguyên tắc: **mỗi người sở hữu module từ đầu đến cuối (API
 | 8 | 26/10 – 01/11 | Test, sửa lỗi, **code freeze** cuối tuần |
 | 9 | 02/11 – 08/11 | Báo cáo, slide, demo |
 
-### ✅ Tiến độ thực tế (cập nhật 12/10)
+### ✅ Tiến độ thực tế (cập nhật 17/10)
 | Việc | Người làm | Trạng thái |
 |---|---|---|
 | Khung solution 5 project, scaffold DbContext, Swagger, `ApiResponse`, `ExceptionMiddleware`, `CLAUDE.md`, README | Đạt (Dev 2) làm thay Dev 1 | ✅ Xong – nhánh `develop` |
 | CRUD Brands, Categories, Motorbikes (DTO + Validation + Service + API) | Đạt (Dev 2) | ✅ Xong |
 | OData `/odata/Motorbikes`, `/odata/Rentals`, API xe trống `/api/motorbikes/available` | Đạt (Dev 2) | ✅ Xong |
 | WebApp: danh sách xe (lọc, sắp xếp, phân trang), chi tiết xe + kiểm tra lịch trống, partial `_MotorbikeCard`, `_Pagination` | Đạt (Dev 2) | ✅ Xong |
+| **Tuần 7:** API + trang quản trị bảo dưỡng (lên lịch → bắt đầu → hoàn thành / huỷ) | Đạt (Dev 2) | ✅ Xong – nhánh `feature/dev2-admin-maintenance` |
+| **Tuần 7:** Trang Admin quản lý xe (thêm / sửa / ngừng / mở lại, upload ảnh, đổi trạng thái), hãng xe, loại xe | Đạt (Dev 2) | ✅ Xong |
+| **Tuần 7–8:** Postman collection 57 request / 92 assertion (test validate 400, 404, 409, OData) + bảng test case `docs/TestCases_Dev2.md` | Đạt (Dev 2) | ✅ Xong |
+| TagHelper `<status-badge>`, partial `_StatusMessage`, `_AdminNav`, form partial | Đạt (Dev 2) | ✅ Xong (Dev 3 dùng lại, thêm `kind="rental"`) |
 | JWT, Login, Cookie Auth WebApp, gắn `[Authorize]` vào các chỗ `TODO (Dev 1)` | Dev 1 | ⏳ Chưa làm |
 | Rentals API + UI | Dev 3 | ⏳ Chưa làm |
 

@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using MotoRent.API.Models;
+using MotoRent.API.Services;
 using MotoRent.BusinessObjects.Common;
 using MotoRent.BusinessObjects.DTOs.Motorbikes;
 using MotoRent.Services.Interfaces;
@@ -13,10 +15,38 @@ namespace MotoRent.API.Controllers;
 public class MotorbikesController : ControllerBase
 {
     private readonly IMotorbikeService _motorbikeService;
+    private readonly IFileStorageService _fileStorage;
 
-    public MotorbikesController(IMotorbikeService motorbikeService)
+    public MotorbikesController(IMotorbikeService motorbikeService, IFileStorageService fileStorage)
     {
         _motorbikeService = motorbikeService;
+        _fileStorage = fileStorage;
+    }
+
+    /// <summary>
+    /// Upload ảnh xe (multipart/form-data, field "file"). Chấp nhận .jpg/.jpeg/.png/.webp, tối đa 2 MB.
+    /// Ảnh cũ (nếu là ảnh đã upload) sẽ bị xoá.
+    /// </summary>
+    // TODO (Dev 1): [Authorize(Roles = AppRoles.Admin)]
+    [HttpPost("{id:int}/image")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(5 * 1024 * 1024)]
+    public async Task<ActionResult<ApiResponse<MotorbikeDto>>> UploadImage(int id, [FromForm] UploadImageRequest request)
+    {
+        await _motorbikeService.GetByIdAsync(id); // 404 nếu xe không tồn tại, trước khi ghi file
+
+        var newUrl = await _fileStorage.SaveImageAsync(request.File, "motorbikes");
+        try
+        {
+            var (motorbike, oldUrl) = await _motorbikeService.UpdateImageAsync(id, newUrl);
+            _fileStorage.DeleteIfUploaded(oldUrl);
+            return Ok(ApiResponse<MotorbikeDto>.Ok(motorbike, "Cập nhật ảnh xe thành công."));
+        }
+        catch
+        {
+            _fileStorage.DeleteIfUploaded(newUrl); // lưu DB lỗi → dọn file vừa ghi
+            throw;
+        }
     }
 
     /// <summary>Chi tiết xe (Public).</summary>

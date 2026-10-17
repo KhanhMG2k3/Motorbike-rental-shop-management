@@ -63,13 +63,36 @@ dotnet ef dbcontext scaffold "Server=.\SQLEXPRESS;Database=MotorbikeRentalDB;Tru
 | DELETE | `/api/motorbikes/{id}` | Ngừng cho thuê (xoá mềm) |
 | GET | `/odata/Motorbikes` | **OData** tìm kiếm xe: `$filter`, `$orderby`, `$select`, `$top`, `$skip`, `$count` |
 | GET | `/odata/Rentals` | **OData** tra cứu đơn thuê (Admin/Staff) |
+| POST | `/api/motorbikes/{id}/image` | Upload ảnh xe (multipart, field `file`, .jpg/.png/.webp ≤ 2 MB) |
+| GET | `/api/maintenances?motorbikeId=&branchId=&status=` | Danh sách phiếu bảo dưỡng |
+| GET / POST / PUT | `/api/maintenances/{id}` | Xem / lên lịch / sửa phiếu |
+| PUT | `/api/maintenances/{id}/start` | Bắt đầu: phiếu → InProgress, xe → Maintenance |
+| PUT | `/api/maintenances/{id}/complete` | Hoàn thành: ghi chi phí thực tế, xe → Available |
+| PUT | `/api/maintenances/{id}/cancel` | Huỷ phiếu |
+| GET | `/api/lookups/branches` | Chi nhánh cho dropdown (chỉ đọc) |
 
 Ví dụ: xem file [MotoRent.API/MotoRent.API.http](MotoRent.API/MotoRent.API.http) (bấm *Send Request* ngay trong Visual Studio / VS Code).
 
+Ảnh upload lưu ở `MotoRent.API/wwwroot/uploads/` (không đưa lên Git).
+
+## Test API (Postman)
+- Collection: [docs/postman/MotoRent_Dev2.postman_collection.json](docs/postman/MotoRent_Dev2.postman_collection.json) – 57 request, 92 assertion.
+- Postman → Import → Run collection. Hoặc dòng lệnh: `npx newman run docs/postman/MotoRent_Dev2.postman_collection.json`
+- Bảng test case cho báo cáo: [docs/TestCases_Dev2.md](docs/TestCases_Dev2.md)
+
 ## WebApp đã có
+**Khách hàng**
 - `/Motorbikes` – danh sách xe: lọc theo từ khoá, hãng, loại, khoảng giá, chỉ xe sẵn sàng; sắp xếp; phân trang (gọi OData).
 - `/Motorbikes/Details/{id}` – chi tiết xe, kiểm tra lịch trống + tạm tính tiền, xe cùng loại.
-- Partial dùng chung: `_MotorbikeCard`, `_Pagination`.
+
+**Quản trị** (`/Admin`, menu *Quản trị* trên thanh điều hướng – Area `Admin`)
+- `/Admin/Motorbikes` – danh sách xe (gồm cả xe ngừng), lọc, thêm / sửa / ngừng / mở lại, upload ảnh, đổi trạng thái, xem lịch sử bảo dưỡng.
+- `/Admin/Brands`, `/Admin/Categories` – thêm / sửa / ngừng hoạt động.
+- `/Admin/Maintenances` – lên lịch, bắt đầu, hoàn thành, huỷ phiếu bảo dưỡng.
+
+**Dùng chung:** Partial `_MotorbikeCard`, `_Pagination`, `_StatusMessage`, `_AdminNav`, form partial (`_MotorbikeForm`, `_BrandForm`, …); TagHelper `<status-badge value="..." kind="motorbike|maintenance" />`.
+
+> ⚠️ Trang quản trị **chưa có phân quyền** – chờ Dev 1 làm đăng nhập rồi gắn `[Authorize]` vào các chỗ ghi `TODO (Dev 1)`.
 
 ## Quy trình Git
 ```

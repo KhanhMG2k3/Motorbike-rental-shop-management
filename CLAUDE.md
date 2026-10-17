@@ -10,6 +10,10 @@
 - `MotoRent.Services`: business logic. Đăng ký DI trong `ServiceRegistration.AddMotoRentServices()`.
 - `MotoRent.API`: Controller chỉ gọi Service, không gọi DbContext. OData controller nằm trong `Controllers/OData`.
 - `MotoRent.WebApp`: MVC, gọi API qua typed `HttpClient` trong `Services/`. Không tham chiếu DataAccess.
+  - API client mới kế thừa `ApiClientBase` (trả `ApiResult<T>`, tự bắt lỗi mất kết nối); lỗi API đưa vào form bằng `result.AddErrorsTo(ModelState, "Form")`.
+  - Trang quản trị nằm trong Area `Admin` (`Areas/Admin`), thông báo dùng `TempData["Success"]` / `TempData["Error"]` + partial `_StatusMessage`.
+  - Badge trạng thái: `<status-badge value="..." kind="motorbike|maintenance" />` (thêm kind mới trong `DisplayHelper`).
+  - Form POST luôn có `[ValidateAntiForgeryToken]`; `returnUrl` phải kiểm tra `Url.IsLocalUrl`.
 
 ## Quy ước code
 - Không trả Entity từ API, luôn dùng DTO: `{Entity}Dto`, `Create{Entity}Dto`, `Update{Entity}Dto`.
@@ -27,8 +31,11 @@
 - Dev 2 (Đạt): Brands, Categories, Motorbikes, OData, Maintenance, DTO/Validation, Postman.
 - Dev 3: Rentals (tạo/duyệt/giao/trả/huỷ), Reviews, Layout/Partial/TagHelper, báo cáo.
 - Kiểm tra trùng lịch xe: dùng `IMotorbikeRepository.IsAvailableAsync(...)` (đã có sẵn).
+- Người đang đăng nhập ở API: `User.GetUserId()` (`MotoRent.API/Extensions`) – trả null khi chưa có JWT.
+- Chỗ chờ Dev 1 gắn phân quyền / JWT: tìm `TODO (Dev 1)`.
 
 ## Chạy
 - API: `dotnet run --project MotoRent.API --launch-profile http` → http://localhost:5001/swagger
 - WebApp: `dotnet run --project MotoRent.WebApp --launch-profile http` → http://localhost:5002
 - Connection string riêng từng máy: `MotoRent.API/appsettings.Local.json` (gitignored).
+- Test API: `npx newman run docs/postman/MotoRent_Dev2.postman_collection.json` (API phải đang chạy).

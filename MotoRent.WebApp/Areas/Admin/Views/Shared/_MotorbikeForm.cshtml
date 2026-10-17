@@ -1,0 +1,78 @@
+@model MotorbikeFormViewModel
+@* Các ô nhập xe dùng chung cho Thêm / Sửa. Tên field có tiền tố "Form." (bind vào UpdateMotorbikeDto). *@
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+<input type="hidden" asp-for="Form.ImageUrl" />
+
+<div class="row g-3">
+    <div class="col-12 col-md-6">
+        <label asp-for="Form.LicensePlate" class="form-label">Biển số <span class="text-danger">*</span></label>
+        <input asp-for="Form.LicensePlate" class="form-control text-uppercase" placeholder="59A1-123.45" />
+        <span asp-validation-for="Form.LicensePlate" class="text-danger small"></span>
+    </div>
+    <div class="col-12 col-md-6">
+        <label asp-for="Form.ModelName" class="form-label">Tên mẫu xe <span class="text-danger">*</span></label>
+        <input asp-for="Form.ModelName" class="form-control" placeholder="Honda Vision" />
+        <span asp-validation-for="Form.ModelName" class="text-danger small"></span>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <label asp-for="Form.BrandId" class="form-label">Hãng xe <span class="text-danger">*</span></label>
+        <select asp-for="Form.BrandId" asp-items="Model.BrandOptions" class="form-select">
+            <option value="0">-- Chọn hãng --</option>
+        </select>
+        <span asp-validation-for="Form.BrandId" class="text-danger small"></span>
+    </div>
+    <div class="col-12 col-md-4">
+        <label asp-for="Form.CategoryId" class="form-label">Loại xe <span class="text-danger">*</span></label>
+        <select asp-for="Form.CategoryId" asp-items="Model.CategoryOptions" class="form-select">
+            <option value="0">-- Chọn loại --</option>
+        </select>
+        <span asp-validation-for="Form.CategoryId" class="text-danger small"></span>
+    </div>
+    <div class="col-12 col-md-4">
+        <label asp-for="Form.BranchId" class="form-label">Chi nhánh <span class="text-danger">*</span></label>
+        <select asp-for="Form.BranchId" asp-items="Model.BranchOptions" class="form-select">
+            <option value="0">-- Chọn chi nhánh --</option>
+        </select>
+        <span asp-validation-for="Form.BranchId" class="text-danger small"></span>
+    </div>
+
+    <div class="col-6 col-md-3">
+        <label asp-for="Form.ManufactureYear" class="form-label">Năm sản xuất <span class="text-danger">*</span></label>
+        <input asp-for="Form.ManufactureYear" type="number" min="2000" max="@(DateTime.Now.Year + 1)" class="form-control" />
+        <span asp-validation-for="Form.ManufactureYear" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="Form.EngineCapacity" class="form-label">Dung tích (cc)</label>
+        <input asp-for="Form.EngineCapacity" type="number" min="50" max="1500" class="form-control" placeholder="Bỏ trống nếu xe điện" />
+        <span asp-validation-for="Form.EngineCapacity" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="Form.Color" class="form-label">Màu <span class="text-danger">*</span></label>
+        <input asp-for="Form.Color" class="form-control" />
+        <span asp-validation-for="Form.Color" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="Form.Odometer" class="form-label">Số km đã đi</label>
+        <input asp-for="Form.Odometer" type="number" min="0" class="form-control" />
+        <span asp-validation-for="Form.Odometer" class="text-danger small"></span>
+    </div>
+
+    <div class="col-12 col-md-6">
+        <label asp-for="Form.PricePerDay" class="form-label">Giá thuê / ngày (đ) <span class="text-danger">*</span></label>
+        <input asp-for="Form.PricePerDay" type="number" min="10000" step="1000" class="form-control" />
+        <span asp-validation-for="Form.PricePerDay" class="text-danger small"></span>
+    </div>
+    <div class="col-12 col-md-6">
+        <label asp-for="Form.DepositAmount" class="form-label">Tiền cọc (đ)</label>
+        <input asp-for="Form.DepositAmount" type="number" min="0" step="1000" class="form-control" />
+        <span asp-validation-for="Form.DepositAmount" class="text-danger small"></span>
+    </div>
+
+    <div class="col-12">
+        <label asp-for="Form.Description" class="form-label">Mô tả</label>
+        <textarea asp-for="Form.Description" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="Form.Description" class="text-danger small"></span>
+    </div>
+</div>

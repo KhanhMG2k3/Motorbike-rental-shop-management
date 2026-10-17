@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
 using MotoRent.API.Middlewares;
 using MotoRent.API.OData;
+using MotoRent.API.Services;
 using MotoRent.BusinessObjects.Common;
 using MotoRent.DataAccess;
 using MotoRent.Services;
@@ -18,6 +19,7 @@ builder.Services.AddDbContext<MotorbikeRentalContext>(options =>
 
 // ===== Repository + Service =====
 builder.Services.AddMotoRentServices();
+builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 
 // ===== Controllers + OData =====
 builder.Services

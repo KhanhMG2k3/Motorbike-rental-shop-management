@@ -1,0 +1,14 @@
+@model CreateCategoryDto
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+
+<div class="mb-3">
+    <label asp-for="CategoryName" class="form-label">Tên loại xe <span class="text-danger">*</span></label>
+    <input asp-for="CategoryName" class="form-control" maxlength="50" />
+    <span asp-validation-for="CategoryName" class="text-danger small"></span>
+</div>
+<div class="mb-3">
+    <label asp-for="Description" class="form-label">Mô tả</label>
+    <textarea asp-for="Description" class="form-control" rows="3" maxlength="255"></textarea>
+    <span asp-validation-for="Description" class="text-danger small"></span>
+</div>

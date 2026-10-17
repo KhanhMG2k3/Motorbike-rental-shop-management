@@ -1,0 +1,46 @@
+@model MaintenanceFormViewModel
+@* Ô nhập phiếu bảo dưỡng dùng chung cho Lên lịch / Sửa. *@
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+
+<div class="row g-3">
+    <div class="col-12">
+        <label asp-for="Form.MotorbikeId" class="form-label">Xe <span class="text-danger">*</span></label>
+        @if (Model.MaintenanceId.HasValue)
+        {
+            @* Sửa phiếu: không đổi xe *@
+            <input type="hidden" asp-for="Form.MotorbikeId" />
+            <input class="form-control" value="@Model.Current?.ModelName – @Model.Current?.LicensePlate" disabled />
+        }
+        else
+        {
+            <select asp-for="Form.MotorbikeId" asp-items="Model.MotorbikeOptions" class="form-select">
+                <option value="0">-- Chọn xe --</option>
+            </select>
+            <span asp-validation-for="Form.MotorbikeId" class="text-danger small"></span>
+        }
+    </div>
+
+    <div class="col-12 col-md-6">
+        <label asp-for="Form.StartDate" class="form-label">Ngày bắt đầu <span class="text-danger">*</span></label>
+        <input asp-for="Form.StartDate" type="date" class="form-control" />
+        <span asp-validation-for="Form.StartDate" class="text-danger small"></span>
+    </div>
+    <div class="col-12 col-md-6">
+        <label asp-for="Form.EndDate" class="form-label">Ngày dự kiến xong</label>
+        <input asp-for="Form.EndDate" type="date" class="form-control" />
+        <span asp-validation-for="Form.EndDate" class="text-danger small"></span>
+    </div>
+
+    <div class="col-12">
+        <label asp-for="Form.Description" class="form-label">Nội dung bảo dưỡng <span class="text-danger">*</span></label>
+        <textarea asp-for="Form.Description" class="form-control" rows="3" placeholder="VD: Thay nhớt, kiểm tra phanh, vệ sinh nồi..."></textarea>
+        <span asp-validation-for="Form.Description" class="text-danger small"></span>
+    </div>
+
+    <div class="col-12 col-md-6">
+        <label asp-for="Form.Cost" class="form-label">Chi phí dự kiến (đ)</label>
+        <input asp-for="Form.Cost" type="number" min="0" step="1000" class="form-control" />
+        <span asp-validation-for="Form.Cost" class="text-danger small"></span>
+    </div>
+</div>

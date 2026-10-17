@@ -20,6 +20,8 @@ public static class ServiceRegistration
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IMotorbikeService, MotorbikeService>();
         services.AddScoped<IRentalQueryService, RentalQueryService>();
+        services.AddScoped<IMaintenanceService, MaintenanceService>();
+        services.AddScoped<ILookupService, LookupService>();
 
         // Services - Dev 1 (Auth, Users, Branches, Payments, Dashboard): thêm ở đây
         // Services - Dev 3 (Rentals, Reviews): thêm ở đây

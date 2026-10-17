@@ -128,3 +128,53 @@ GET {{api}}/odata/Rentals?$filter=contains(CustomerPhone,'0933') or contains(Ren
 
 ### Doanh thu đơn đã hoàn thành tại chi nhánh 1
 GET {{api}}/odata/Rentals?$filter=Status eq 'Completed' and BranchId eq 1&$select=RentalCode,CustomerName,TotalAmount
+
+
+### ===== UPLOAD ẢNH XE =====
+### Đổi đường dẫn file ảnh trên máy bạn ở dòng "< ./..." bên dưới
+POST {{api}}/api/motorbikes/1/image
+Content-Type: multipart/form-data; boundary=MotoRentBoundary
+
+--MotoRentBoundary
+Content-Disposition: form-data; name="file"; filename="xe.jpg"
+Content-Type: image/jpeg
+
+< ./xe.jpg
+--MotoRentBoundary--
+
+
+### ===== BẢO DƯỠNG =====
+GET {{api}}/api/maintenances
+
+###
+GET {{api}}/api/maintenances?status=InProgress&branchId=1
+
+### Lên lịch bảo dưỡng (đổi ngày cho phù hợp)
+POST {{api}}/api/maintenances
+Content-Type: application/json
+
+{
+  "motorbikeId": 5,
+  "startDate": "2026-10-20",
+  "endDate": "2026-10-21",
+  "description": "Thay nhớt, kiểm tra phanh",
+  "cost": 150000
+}
+
+### Bắt đầu (đổi Id = phiếu vừa tạo)
+PUT {{api}}/api/maintenances/5/start
+
+### Hoàn thành
+PUT {{api}}/api/maintenances/5/complete
+Content-Type: application/json
+
+{
+  "cost": 180000
+}
+
+### Huỷ
+PUT {{api}}/api/maintenances/5/cancel
+
+
+### ===== DROPDOWN =====
+GET {{api}}/api/lookups/branches

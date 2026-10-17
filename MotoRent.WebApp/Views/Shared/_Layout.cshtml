@@ -20,10 +20,20 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Trang chủ</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Motorbikes" asp-action="Index">Thuê xe</a>
+                        </li>
+                        @* TODO (Dev 1): chỉ hiện menu này cho Admin / Staff khi đã có đăng nhập *@
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Quản trị</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" asp-area="Admin" asp-controller="Motorbikes" asp-action="Index">Xe máy</a></li>
+                                <li><a class="dropdown-item" asp-area="Admin" asp-controller="Brands" asp-action="Index">Hãng xe</a></li>
+                                <li><a class="dropdown-item" asp-area="Admin" asp-controller="Categories" asp-action="Index">Loại xe</a></li>
+                                <li><a class="dropdown-item" asp-area="Admin" asp-controller="Maintenances" asp-action="Index">Bảo dưỡng</a></li>
+                            </ul>
                         </li>
                     </ul>
                 </div>

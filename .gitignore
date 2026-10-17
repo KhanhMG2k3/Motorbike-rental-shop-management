@@ -485,3 +485,6 @@ $RECYCLE.BIN/
 
 # Cấu hình riêng từng máy (connection string)
 appsettings.Local.json
+
+# Ảnh upload lúc chạy (không đưa lên Git)
+MotoRent.API/wwwroot/uploads/

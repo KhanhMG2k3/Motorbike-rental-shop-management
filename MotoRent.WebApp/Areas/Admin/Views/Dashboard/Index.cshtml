@@ -47,10 +47,13 @@
         </div>
     </div>
     <div class="col-12 col-sm-6 col-xl-3">
-        <div class="card border-0 shadow-sm bg-dark text-white p-3 h-100">
-            <div class="small opacity-75">Thành viên hệ thống</div>
-            <div class="h3 fw-bold my-1">@Model.Summary.TotalCustomers</div>
-            <div class="small opacity-75">Khách hàng (@Model.Summary.TotalStaff nhân viên)</div>
+        <div class="card border-0 shadow-sm bg-dark text-white p-3 h-100 d-flex flex-column justify-content-between">
+            <div>
+                <div class="small opacity-75">Thành viên hệ thống</div>
+                <div class="h3 fw-bold my-1">@Model.Summary.TotalCustomers</div>
+                <div class="small opacity-75">Khách hàng (@Model.Summary.TotalStaff nhân viên)</div>
+            </div>
+            <a asp-area="Admin" asp-controller="Users" asp-action="Index" class="btn btn-sm btn-outline-light mt-2">Quản lý tài khoản &rarr;</a>
         </div>
     </div>
 </div>

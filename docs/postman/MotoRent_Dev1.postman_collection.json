@@ -1,0 +1,586 @@
+{
+  "info": {
+    "name": "MotoRent - Dev 1 Test Suite",
+    "description": "Bộ kiểm thử tự động API cho phần Dev 1 (Auth, JWT, Branches, Users, Dashboard, Phân quyền)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5001" },
+    { "key": "adminToken", "value": "" },
+    { "key": "customerToken", "value": "" },
+    { "key": "staffToken", "value": "" },
+    { "key": "createdBranchId", "value": "" },
+    { "key": "createdStaffId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication & Profile",
+      "item": [
+        {
+          "name": "1.1 Login Admin (Hợp lệ) -> Lưu token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Response success is true', function () { pm.expect(json.success).to.be.true; });",
+                  "pm.test('Has JWT token', function () { pm.expect(json.data.token).to.be.a('string'); });",
+                  "pm.test('Role is Admin', function () { pm.expect(json.data.role).to.eql('Admin'); });",
+                  "pm.collectionVariables.set('adminToken', json.data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@motorent.vn\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "1.2 Login Staff (Hợp lệ) -> Lưu token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Role is Staff', function () { pm.expect(json.data.role).to.eql('Staff'); });",
+                  "pm.collectionVariables.set('staffToken', json.data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"staff1@motorent.vn\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "1.3 Login Customer (Hợp lệ) -> Lưu token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Role is Customer', function () { pm.expect(json.data.role).to.eql('Customer'); });",
+                  "pm.collectionVariables.set('customerToken', json.data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer1@example.com\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "1.4 Login sai mật khẩu -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Success is false', function () { pm.expect(json.success).to.be.false; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@motorent.vn\",\n  \"password\": \"sai_mat_khau\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "1.5 Login email không hợp lệ -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"email-sai-dinh-dang\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "1.6 Xem hồ sơ cá nhân /me (Có token) -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('User email is correct', function () { pm.expect(json.data.email).to.eql('admin@motorent.vn'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        },
+        {
+          "name": "1.7 Xem hồ sơ /me (Không có token) -> 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 401', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        },
+        {
+          "name": "1.8 Đăng ký tài khoản Customer dưới 18 tuổi -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Trần Bé Con\",\n  \"email\": \"becon@example.com\",\n  \"password\": \"123456\",\n  \"confirmPassword\": \"123456\",\n  \"dateOfBirth\": \"2015-01-01\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "1.9 Đăng ký trùng email đã có -> 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 409', function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Admin Trùng\",\n  \"email\": \"admin@motorent.vn\",\n  \"password\": \"123456\",\n  \"confirmPassword\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Branches Module",
+      "item": [
+        {
+          "name": "2.1 Lấy danh sách chi nhánh (Public) -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Data is array', function () { pm.expect(json.data).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/branches"
+          }
+        },
+        {
+          "name": "2.2 Thêm chi nhánh không có token -> 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 401', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branchName\": \"Test No Auth\",\n  \"address\": \"123 Test\",\n  \"phone\": \"0901111222\",\n  \"openTime\": \"07:00\",\n  \"closeTime\": \"21:00\"\n}"
+            },
+            "url": "{{baseUrl}}/api/branches"
+          }
+        },
+        {
+          "name": "2.3 Customer thêm chi nhánh -> 403 Forbidden",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branchName\": \"Test Forbidden\",\n  \"address\": \"123 Test\",\n  \"phone\": \"0901111222\",\n  \"openTime\": \"07:00\",\n  \"closeTime\": \"21:00\"\n}"
+            },
+            "url": "{{baseUrl}}/api/branches"
+          }
+        },
+        {
+          "name": "2.4 Thêm chi nhánh với giờ đóng <= mở -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branchName\": \"Chi nhánh Test Giờ\",\n  \"address\": \"123 Test\",\n  \"phone\": \"0901111222\",\n  \"openTime\": \"21:00\",\n  \"closeTime\": \"07:00\"\n}"
+            },
+            "url": "{{baseUrl}}/api/branches"
+          }
+        },
+        {
+          "name": "2.5 Admin thêm chi nhánh hợp lệ -> 201 Created",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.test('BranchId exists', function () { pm.expect(json.data.branchId).to.be.a('number'); });",
+                  "pm.collectionVariables.set('createdBranchId', json.data.branchId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branchName\": \"Chi nhánh Test Bình Thạnh\",\n  \"address\": \"456 Xô Viết Nghệ Tĩnh, Bình Thạnh\",\n  \"phone\": \"0909888777\",\n  \"openTime\": \"06:30\",\n  \"closeTime\": \"22:00\"\n}"
+            },
+            "url": "{{baseUrl}}/api/branches"
+          }
+        },
+        {
+          "name": "2.6 Thêm chi nhánh trùng tên -> 409 Conflict",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 409', function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branchName\": \"Chi nhánh Test Bình Thạnh\",\n  \"address\": \"Địa chỉ khác\",\n  \"phone\": \"0909111222\",\n  \"openTime\": \"07:00\",\n  \"closeTime\": \"21:00\"\n}"
+            },
+            "url": "{{baseUrl}}/api/branches"
+          }
+        },
+        {
+          "name": "2.7 Ngừng hoạt động chi nhánh vừa tạo (Soft delete) -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/branches/{{createdBranchId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Users Module",
+      "item": [
+        {
+          "name": "3.1 Lấy danh sách users (Admin) -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Users list has items', function () { pm.expect(json.data.length).to.be.above(0); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/users"
+          }
+        },
+        {
+          "name": "3.2 Customer truy cập /api/users -> 403 Forbidden",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": "{{baseUrl}}/api/users"
+          }
+        },
+        {
+          "name": "3.3 Tạo tài khoản Staff cho chi nhánh 1 (Admin) -> 201 Created",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Role is Staff', function () { pm.expect(json.data.roleName).to.eql('Staff'); });",
+                  "pm.collectionVariables.set('createdStaffId', json.data.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Nhân viên Test\",\n  \"email\": \"staff_test_dev1@motorent.vn\",\n  \"password\": \"123456\",\n  \"phone\": \"0988776655\",\n  \"branchId\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/users/staff"
+          }
+        },
+        {
+          "name": "3.4 Admin tự khoá tài khoản chính mình -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Message contains warning', function () { pm.expect(json.message).to.contain('Không thể tự khoá'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/users/1/status"
+          }
+        },
+        {
+          "name": "3.5 Khoá tài khoản Staff vừa tạo -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/users/{{createdStaffId}}/status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Dashboard Module",
+      "item": [
+        {
+          "name": "4.1 Lấy KPI Summary (Admin) -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Has totalMotorbikes', function () { pm.expect(json.data.totalMotorbikes).to.be.a('number'); });",
+                  "pm.test('Has completedRentals', function () { pm.expect(json.data.completedRentals).to.be.a('number'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/dashboard/summary"
+          }
+        },
+        {
+          "name": "4.2 Lấy doanh thu theo tháng (Admin) -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Data is array', function () { pm.expect(json.data).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/dashboard/monthly-revenue?year=2026"
+          }
+        },
+        {
+          "name": "4.3 Lấy top xe mang lại doanh thu (Admin) -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Data is array', function () { pm.expect(json.data).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/dashboard/top-motorbikes?top=5"
+          }
+        },
+        {
+          "name": "4.4 Customer xem dashboard -> 403 Forbidden",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": "{{baseUrl}}/api/dashboard/summary"
+          }
+        }
+      ]
+    }
+  ]
+}

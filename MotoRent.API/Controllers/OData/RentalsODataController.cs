@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
+using MotoRent.BusinessObjects.Constants;
 using MotoRent.BusinessObjects.DTOs.Rentals;
 using MotoRent.Services.Interfaces;
 
@@ -12,7 +14,7 @@ namespace MotoRent.API.Controllers.OData;
 ///   /odata/Rentals?$filter=contains(RentalCode,'20261003') or contains(CustomerPhone,'0933')
 ///   /odata/Rentals?$filter=StartDate ge 2026-09-01T00:00:00Z and BranchId eq 1&amp;$count=true
 /// </summary>
-// TODO (Dev 1): thêm [Authorize(Roles = AppRoles.AdminOrStaff)] khi đã cấu hình JWT
+[Authorize(Roles = AppRoles.AdminOrStaff)]
 public class RentalsODataController : ODataController
 {
     private readonly IRentalQueryService _rentalQueryService;

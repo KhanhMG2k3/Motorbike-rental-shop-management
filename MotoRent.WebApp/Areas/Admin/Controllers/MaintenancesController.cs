@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using MotoRent.BusinessObjects.Constants;
 using MotoRent.BusinessObjects.DTOs.Maintenances;
 using MotoRent.WebApp.Areas.Admin.Models;
 using MotoRent.WebApp.Services;
@@ -7,7 +9,7 @@ using MotoRent.WebApp.Services;
 namespace MotoRent.WebApp.Areas.Admin.Controllers;
 
 [Area("Admin")]
-// TODO (Dev 1): [Authorize(Roles = AppRoles.AdminOrStaff)] khi đã có đăng nhập
+[Authorize(Roles = AppRoles.AdminOrStaff)]
 public class MaintenancesController : Controller
 {
     private readonly MaintenanceApiClient _api;

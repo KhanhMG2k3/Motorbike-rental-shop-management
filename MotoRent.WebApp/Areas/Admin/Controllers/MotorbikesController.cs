@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using MotoRent.BusinessObjects.Constants;
 using MotoRent.BusinessObjects.DTOs.Maintenances;
 using MotoRent.BusinessObjects.DTOs.Motorbikes;
 using MotoRent.WebApp.Areas.Admin.Models;
@@ -8,8 +10,7 @@ using MotoRent.WebApp.Services;
 namespace MotoRent.WebApp.Areas.Admin.Controllers;
 
 [Area("Admin")]
-// TODO (Dev 1): [Authorize(Roles = AppRoles.Admin)] khi đã có đăng nhập
-//               (riêng ChangeStatus cho cả Staff: [Authorize(Roles = AppRoles.AdminOrStaff)])
+[Authorize(Roles = AppRoles.AdminOrStaff)]
 public class MotorbikesController : Controller
 {
     private const int PageSize = 10;
@@ -46,6 +47,7 @@ public class MotorbikesController : Controller
         return View(model);
     }
 
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<IActionResult> Create()
     {
         var model = new MotorbikeFormViewModel();
@@ -55,6 +57,7 @@ public class MotorbikesController : Controller
     }
 
     [HttpPost]
+    [Authorize(Roles = AppRoles.Admin)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([Bind(Prefix = "Form")] UpdateMotorbikeDto form)
     {
@@ -75,6 +78,7 @@ public class MotorbikesController : Controller
         return View(model);
     }
 
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<IActionResult> Edit(int id)
     {
         var result = await _api.GetMotorbikeAsync(id);
@@ -115,6 +119,7 @@ public class MotorbikesController : Controller
     }
 
     [HttpPost]
+    [Authorize(Roles = AppRoles.Admin)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, [Bind(Prefix = "Form")] UpdateMotorbikeDto form)
     {
@@ -141,6 +146,7 @@ public class MotorbikesController : Controller
     }
 
     [HttpPost]
+    [Authorize(Roles = AppRoles.Admin)]
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(5 * 1024 * 1024)]
     public async Task<IActionResult> UploadImage(int id, IFormFile? imageFile)
@@ -170,6 +176,7 @@ public class MotorbikesController : Controller
     }
 
     [HttpPost]
+    [Authorize(Roles = AppRoles.Admin)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Deactivate(int id)
     {

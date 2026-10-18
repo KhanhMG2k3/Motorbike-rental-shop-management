@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Text.Unicode;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.Extensions.WebEncoders;
 using MotoRent.WebApp.Services;
@@ -23,15 +24,31 @@ void ConfigureApiClient(HttpClient client)
     client.Timeout = TimeSpan.FromSeconds(15);
 }
 
-// TODO (Dev 1): gắn JWT cho các client gọi API cần đăng nhập, VD:
-//   builder.Services.AddHttpClient<CatalogAdminApiClient>(ConfigureApiClient).AddHttpMessageHandler<BearerTokenHandler>();
-builder.Services.AddHttpClient<MotorbikeApiClient>(ConfigureApiClient);
-builder.Services.AddHttpClient<CatalogAdminApiClient>(ConfigureApiClient);
-builder.Services.AddHttpClient<MaintenanceApiClient>(ConfigureApiClient);
-builder.Services.AddHttpClient<BranchApiClient>(ConfigureApiClient);
-builder.Services.AddHttpClient<UserAdminApiClient>(ConfigureApiClient);
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddTransient<BearerTokenHandler>();
 
-// TODO (Dev 1): Cookie Authentication
+builder.Services.AddHttpClient<MotorbikeApiClient>(ConfigureApiClient);
+builder.Services.AddHttpClient<CatalogAdminApiClient>(ConfigureApiClient)
+    .AddHttpMessageHandler<BearerTokenHandler>();
+builder.Services.AddHttpClient<MaintenanceApiClient>(ConfigureApiClient)
+    .AddHttpMessageHandler<BearerTokenHandler>();
+builder.Services.AddHttpClient<BranchApiClient>(ConfigureApiClient)
+    .AddHttpMessageHandler<BearerTokenHandler>();
+builder.Services.AddHttpClient<UserAdminApiClient>(ConfigureApiClient)
+    .AddHttpMessageHandler<BearerTokenHandler>();
+builder.Services.AddHttpClient<AuthApiClient>(ConfigureApiClient)
+    .AddHttpMessageHandler<BearerTokenHandler>();
+
+// ===== Cookie Authentication =====
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "MotoRent.Auth";
+        options.LoginPath = "/Auth/Login";
+        options.AccessDeniedPath = "/Auth/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(24);
+        options.SlidingExpiration = true;
+    });
 
 var app = builder.Build();
 
@@ -56,6 +73,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Trang quản trị: /Admin/{controller}/{action}

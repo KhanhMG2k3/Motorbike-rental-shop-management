@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MotoRent.API.Extensions;
 using MotoRent.BusinessObjects.Common;
+using MotoRent.BusinessObjects.Constants;
 using MotoRent.BusinessObjects.DTOs.Maintenances;
 using MotoRent.Services.Interfaces;
 
@@ -10,9 +12,9 @@ namespace MotoRent.API.Controllers;
 /// Quản lý phiếu bảo dưỡng xe (Admin / Staff).
 /// Luồng: POST (Scheduled) → PUT start (InProgress, xe → Maintenance) → PUT complete (Completed, xe → Available)
 /// </summary>
-// TODO (Dev 1): thêm [Authorize(Roles = AppRoles.AdminOrStaff)] khi đã cấu hình JWT
 [ApiController]
 [Route("api/maintenances")]
+[Authorize(Roles = AppRoles.AdminOrStaff)]
 public class MaintenancesController : ControllerBase
 {
     private readonly IMaintenanceService _maintenanceService;

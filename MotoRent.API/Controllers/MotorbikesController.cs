@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MotoRent.API.Models;
 using MotoRent.API.Services;
 using MotoRent.BusinessObjects.Common;
+using MotoRent.BusinessObjects.Constants;
 using MotoRent.BusinessObjects.DTOs.Motorbikes;
 using MotoRent.Services.Interfaces;
 
@@ -27,8 +29,8 @@ public class MotorbikesController : ControllerBase
     /// Upload ảnh xe (multipart/form-data, field "file"). Chấp nhận .jpg/.jpeg/.png/.webp, tối đa 2 MB.
     /// Ảnh cũ (nếu là ảnh đã upload) sẽ bị xoá.
     /// </summary>
-    // TODO (Dev 1): [Authorize(Roles = AppRoles.Admin)]
     [HttpPost("{id:int}/image")]
+    [Authorize(Roles = AppRoles.Admin)]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(5 * 1024 * 1024)]
     public async Task<ActionResult<ApiResponse<MotorbikeDto>>> UploadImage(int id, [FromForm] UploadImageRequest request)
@@ -62,8 +64,8 @@ public class MotorbikesController : ControllerBase
     public async Task<ActionResult<ApiResponse<List<MotorbikeDto>>>> GetAvailable([FromQuery] AvailableMotorbikeQuery query)
         => Ok(ApiResponse<List<MotorbikeDto>>.Ok(await _motorbikeService.GetAvailableAsync(query)));
 
-    // TODO (Dev 1): thêm [Authorize(Roles = AppRoles.Admin)] cho POST / PUT / DELETE khi đã có JWT
     [HttpPost]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<ApiResponse<MotorbikeDto>>> Create(CreateMotorbikeDto dto)
     {
         var created = await _motorbikeService.CreateAsync(dto);
@@ -72,16 +74,18 @@ public class MotorbikesController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<ApiResponse<MotorbikeDto>>> Update(int id, UpdateMotorbikeDto dto)
         => Ok(ApiResponse<MotorbikeDto>.Ok(await _motorbikeService.UpdateAsync(id, dto), "Cập nhật xe thành công."));
 
-    // TODO (Dev 1): [Authorize(Roles = AppRoles.AdminOrStaff)]
     [HttpPatch("{id:int}/status")]
+    [Authorize(Roles = AppRoles.AdminOrStaff)]
     public async Task<ActionResult<ApiResponse<MotorbikeDto>>> UpdateStatus(int id, UpdateMotorbikeStatusDto dto)
         => Ok(ApiResponse<MotorbikeDto>.Ok(await _motorbikeService.UpdateStatusAsync(id, dto), "Cập nhật trạng thái xe thành công."));
 
     /// <summary>Xoá mềm: chuyển xe sang Inactive.</summary>
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<ApiResponse<object>>> Delete(int id)
     {
         await _motorbikeService.DeleteAsync(id);

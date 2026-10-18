@@ -1,11 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MotoRent.BusinessObjects.Constants;
 using MotoRent.BusinessObjects.DTOs.Categories;
 using MotoRent.WebApp.Services;
 
 namespace MotoRent.WebApp.Areas.Admin.Controllers;
 
 [Area("Admin")]
-// TODO (Dev 1): [Authorize(Roles = AppRoles.Admin)] khi đã có đăng nhập
+[Authorize(Roles = AppRoles.Admin)]
 public class CategoriesController : Controller
 {
     private readonly CatalogAdminApiClient _api;

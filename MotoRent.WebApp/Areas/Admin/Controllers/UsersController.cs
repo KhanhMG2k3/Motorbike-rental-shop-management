@@ -1,11 +1,14 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using MotoRent.BusinessObjects.Constants;
 using MotoRent.BusinessObjects.DTOs.Users;
 using MotoRent.WebApp.Services;
 
 namespace MotoRent.WebApp.Areas.Admin.Controllers;
 
 [Area("Admin")]
+[Authorize(Roles = AppRoles.Admin)]
 public class UsersController : Controller
 {
     private readonly UserAdminApiClient _userApi;

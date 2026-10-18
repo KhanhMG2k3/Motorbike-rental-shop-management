@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MotoRent.BusinessObjects.Constants;
 using MotoRent.BusinessObjects.DTOs.Branches;
 using MotoRent.WebApp.Services;
 
 namespace MotoRent.WebApp.Areas.Admin.Controllers;
 
 [Area("Admin")]
+[Authorize(Roles = AppRoles.Admin)]
 public class BranchesController : Controller
 {
     private readonly BranchApiClient _api;

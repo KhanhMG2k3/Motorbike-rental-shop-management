@@ -286,7 +286,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"branchName\": \"Test Forbidden\",\n  \"address\": \"123 Test\",\n  \"phone\": \"0901111222\",\n  \"openTime\": \"07:00\",\n  \"closeTime\": \"21:00\"\n}"
+              "raw": "{\n  \"branchName\": \"Test Forbidden\",\n  \"address\": \"123 Test\",\n  \"phone\": \"0901111222\",\n  \"openTime\": \"07:00:00\",\n  \"closeTime\": \"21:00:00\"\n}"
             },
             "url": "{{baseUrl}}/api/branches"
           }
@@ -311,7 +311,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"branchName\": \"Chi nhánh Test Giờ\",\n  \"address\": \"123 Test\",\n  \"phone\": \"0901111222\",\n  \"openTime\": \"21:00\",\n  \"closeTime\": \"07:00\"\n}"
+              "raw": "{\n  \"branchName\": \"Chi nhánh Test Giờ\",\n  \"address\": \"123 Test\",\n  \"phone\": \"0901111222\",\n  \"openTime\": \"21:00:00\",\n  \"closeTime\": \"07:00:00\"\n}"
             },
             "url": "{{baseUrl}}/api/branches"
           }
@@ -326,7 +326,8 @@
                   "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
                   "var json = pm.response.json();",
                   "pm.test('BranchId exists', function () { pm.expect(json.data.branchId).to.be.a('number'); });",
-                  "pm.collectionVariables.set('createdBranchId', json.data.branchId);"
+                  "pm.collectionVariables.set('createdBranchId', json.data.branchId);",
+                  "pm.collectionVariables.set('createdBranchName', json.data.branchName);"
                 ]
               }
             }
@@ -339,7 +340,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"branchName\": \"Chi nhánh Test Bình Thạnh\",\n  \"address\": \"456 Xô Viết Nghệ Tĩnh, Bình Thạnh\",\n  \"phone\": \"0909888777\",\n  \"openTime\": \"06:30\",\n  \"closeTime\": \"22:00\"\n}"
+              "raw": "{\n  \"branchName\": \"Chi nhánh Test {{$timestamp}}\",\n  \"address\": \"456 Xô Viết Nghệ Tĩnh, Bình Thạnh\",\n  \"phone\": \"0909888777\",\n  \"openTime\": \"06:30:00\",\n  \"closeTime\": \"22:00:00\"\n}"
             },
             "url": "{{baseUrl}}/api/branches"
           }
@@ -364,7 +365,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"branchName\": \"Chi nhánh Test Bình Thạnh\",\n  \"address\": \"Địa chỉ khác\",\n  \"phone\": \"0909111222\",\n  \"openTime\": \"07:00\",\n  \"closeTime\": \"21:00\"\n}"
+              "raw": "{\n  \"branchName\": \"{{createdBranchName}}\",\n  \"address\": \"Địa chỉ khác\",\n  \"phone\": \"0909111222\",\n  \"openTime\": \"07:00:00\",\n  \"closeTime\": \"21:00:00\"\n}"
             },
             "url": "{{baseUrl}}/api/branches"
           }
@@ -434,6 +435,14 @@
           "name": "3.3 Tạo tài khoản Staff cho chi nhánh 1 (Admin) -> 201 Created",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('randomStaffPhone', '09' + Math.floor(10000000 + Math.random() * 90000000));"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "exec": [
@@ -453,7 +462,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Nhân viên Test\",\n  \"email\": \"staff_test_dev1@motorent.vn\",\n  \"password\": \"123456\",\n  \"phone\": \"0988776655\",\n  \"branchId\": 1\n}"
+              "raw": "{\n  \"fullName\": \"Nhân viên Test\",\n  \"email\": \"staff_{{$timestamp}}@motorent.vn\",\n  \"password\": \"123456\",\n  \"phone\": \"{{randomStaffPhone}}\",\n  \"branchId\": 1\n}"
             },
             "url": "{{baseUrl}}/api/users/staff"
           }

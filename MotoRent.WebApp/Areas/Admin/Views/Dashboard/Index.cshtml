@@ -1,0 +1,205 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Tổng quan & Thống kê";
+}
+
+<partial name="_AdminNav" />
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">Tổng quan tình hình kinh doanh</h1>
+    <form method="get" class="d-flex align-items-center gap-2">
+        <label class="small text-muted text-nowrap">Năm:</label>
+        <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
+            @for (int y = DateTime.Now.Year; y >= 2024; y--)
+            {
+                <option value="@y" selected="@(y == Model.SelectedYear)">@y</option>
+            }
+        </select>
+    </form>
+</div>
+
+<partial name="_StatusMessage" />
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm bg-primary text-white p-3 h-100">
+            <div class="small opacity-75">Doanh thu tháng này (@DateTime.Now.Month/@Model.SelectedYear)</div>
+            <div class="h3 fw-bold my-1">@DisplayHelper.Money(Model.Summary.ThisMonthRevenue)</div>
+            <div class="small opacity-75">Tổng: @DisplayHelper.Money(Model.Summary.TotalRevenue)</div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm bg-success text-white p-3 h-100">
+            <div class="small opacity-75">Đơn thuê đã hoàn thành</div>
+            <div class="h3 fw-bold my-1">@Model.Summary.CompletedRentals</div>
+            <div class="small opacity-75">Giao dịch đã kết thúc & thanh toán</div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm bg-info text-dark p-3 h-100">
+            <div class="small opacity-75">Tình trạng đội xe</div>
+            <div class="h3 fw-bold my-1">@Model.Summary.AvailableMotorbikes / @Model.Summary.TotalMotorbikes</div>
+            <div class="small">
+                <span class="badge bg-light text-dark">@Model.Summary.RentedMotorbikes đang thuê</span>
+                <span class="badge bg-warning text-dark">@Model.Summary.MaintenanceMotorbikes bảo dưỡng</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm bg-dark text-white p-3 h-100">
+            <div class="small opacity-75">Thành viên hệ thống</div>
+            <div class="h3 fw-bold my-1">@Model.Summary.TotalCustomers</div>
+            <div class="small opacity-75">Khách hàng (@Model.Summary.TotalStaff nhân viên)</div>
+        </div>
+    </div>
+</div>
+
+<!-- Biểu đồ Chart.js -->
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm p-3">
+            <h2 class="h6 fw-bold mb-3">Biểu đồ doanh thu 12 tháng – Năm @Model.SelectedYear</h2>
+            <div style="height: 320px;">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bảng Top xe -->
+<div class="card border-0 shadow-sm p-3 mb-4">
+    <h2 class="h6 fw-bold mb-3">Top 10 xe mang lại doanh thu cao nhất</h2>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Mẫu xe</th>
+                    <th>Biển số</th>
+                    <th>Hãng / Loại</th>
+                    <th>Chi nhánh</th>
+                    <th>Giá / ngày</th>
+                    <th>Trạng thái</th>
+                    <th class="text-center">Đơn hoàn thành</th>
+                    <th class="text-center">Đánh giá TB</th>
+                    <th class="text-end">Tổng doanh thu</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{ int rank = 1; }
+                @foreach (var b in Model.TopMotorbikes)
+                {
+                    <tr>
+                        <td class="fw-bold text-muted">@(rank++)</td>
+                        <td class="fw-semibold">@b.ModelName</td>
+                        <td><code>@b.LicensePlate</code></td>
+                        <td>@b.BrandName · @b.CategoryName</td>
+                        <td>@b.BranchName</td>
+                        <td>@DisplayHelper.Money(b.PricePerDay)</td>
+                        <td><status-badge value="@b.Status" kind="motorbike" /></td>
+                        <td class="text-center fw-semibold">@b.CompletedRentals</td>
+                        <td class="text-center">
+                            @if (b.AverageRating.HasValue)
+                            {
+                                <span class="text-warning fw-bold">★ @b.AverageRating.Value.ToString("0.0")</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td class="text-end fw-bold text-primary">@DisplayHelper.Money(b.TotalEarned)</td>
+                    </tr>
+                }
+                @if (!Model.TopMotorbikes.Any())
+                {
+                    <tr><td colspan="10" class="text-center text-muted">Chưa có số liệu thống kê xe.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Chuẩn bị dữ liệu 12 tháng từ server
+            var monthsData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                Enumerable.Range(1, 12).Select(m => {
+                    var rec = Model.MonthlyRevenues.FirstOrDefault(r => r.Month == m);
+                    return new {
+                        month = "T" + m,
+                        rental = rec?.RentalRevenue ?? 0m,
+                        penalty = rec?.PenaltyRevenue ?? 0m,
+                        total = rec?.TotalRevenue ?? 0m
+                    };
+                })
+            ));
+
+            var labels = monthsData.map(d => d.month);
+            var rentalValues = monthsData.map(d => d.rental);
+            var penaltyValues = monthsData.map(d => d.penalty);
+            var totalValues = monthsData.map(d => d.total);
+
+            var ctx = document.getElementById('revenueChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Tiền thuê xe',
+                            data: rentalValues,
+                            backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                            borderColor: 'rgb(13, 110, 253)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Phí phạt / phụ thu',
+                            data: penaltyValues,
+                            backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                            borderColor: 'rgb(255, 193, 7)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Tổng doanh thu',
+                            data: totalValues,
+                            type: 'line',
+                            borderColor: 'rgb(25, 135, 84)',
+                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString('vi-VN') + ' đ';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    var val = context.parsed.y || 0;
+                                    return context.dataset.label + ': ' + val.toLocaleString('vi-VN') + ' đ';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}

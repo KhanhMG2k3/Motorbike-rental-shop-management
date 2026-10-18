@@ -38,6 +38,8 @@ builder.Services.AddHttpClient<UserAdminApiClient>(ConfigureApiClient)
     .AddHttpMessageHandler<BearerTokenHandler>();
 builder.Services.AddHttpClient<AuthApiClient>(ConfigureApiClient)
     .AddHttpMessageHandler<BearerTokenHandler>();
+builder.Services.AddHttpClient<DashboardApiClient>(ConfigureApiClient)
+    .AddHttpMessageHandler<BearerTokenHandler>();
 
 // ===== Cookie Authentication =====
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

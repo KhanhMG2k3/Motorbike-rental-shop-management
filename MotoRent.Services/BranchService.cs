@@ -74,6 +74,25 @@ public class BranchService : IBranchService
         await _branchRepo.SaveChangesAsync();
     }
 
+    public async Task<bool> ToggleStatusAsync(int id)
+    {
+        var entity = await _branchRepo.GetByIdAsync(id)
+            ?? throw new NotFoundException($"Không tìm thấy chi nhánh có Id = {id}.");
+
+        if (entity.IsActive)
+        {
+            await EnsureNoActiveResourcesAsync(id);
+            entity.IsActive = false;
+        }
+        else
+        {
+            entity.IsActive = true;
+        }
+
+        await _branchRepo.SaveChangesAsync();
+        return entity.IsActive;
+    }
+
     private async Task EnsureNameUniqueAsync(string name, int? excludeId = null)
     {
         var trimmed = name.Trim();

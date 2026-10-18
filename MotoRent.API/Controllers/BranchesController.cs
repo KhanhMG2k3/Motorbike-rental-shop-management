@@ -52,4 +52,14 @@ public class BranchesController : ControllerBase
         await _branchService.DeleteAsync(id);
         return Ok(ApiResponse<object>.Ok(null, "Đã ngừng hoạt động chi nhánh."));
     }
+
+    /// <summary>Đổi trạng thái Hoạt động / Ngừng của chi nhánh (Admin).</summary>
+    [HttpPatch("{id:int}/status")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<ApiResponse<object>>> ToggleStatus(int id)
+    {
+        var isActive = await _branchService.ToggleStatusAsync(id);
+        var message = isActive ? "Đã kích hoạt lại chi nhánh." : "Đã ngừng hoạt động chi nhánh.";
+        return Ok(ApiResponse<object>.Ok(null, message));
+    }
 }

@@ -23,4 +23,7 @@ public class BranchApiClient : ApiClientBase
 
     public Task<ApiResult<object>> DeactivateBranchAsync(int id)
         => DeleteAsync<object>($"api/branches/{id}");
+
+    public Task<ApiResult<object>> ToggleStatusAsync(int id)
+        => PatchAsync<object>($"api/branches/{id}/status", new { });
 }

@@ -42,13 +42,17 @@
                     </td>
                     <td class="text-end text-nowrap">
                         <a asp-action="Edit" asp-route-id="@b.BranchId" class="btn btn-sm btn-outline-primary">Sửa</a>
-                        @if (b.IsActive)
-                        {
-                            <form asp-action="Deactivate" asp-route-id="@b.BranchId" method="post" class="d-inline"
-                                  onsubmit="return confirm('Ngừng hoạt động chi nhánh @b.BranchName?');">
+                        <form asp-action="ToggleStatus" asp-route-id="@b.BranchId" method="post" class="d-inline"
+                              onsubmit="return confirm('@(b.IsActive ? $"Ngừng hoạt động chi nhánh {b.BranchName}?" : $"Kích hoạt lại chi nhánh {b.BranchName}?")');">
+                            @if (b.IsActive)
+                            {
                                 <button type="submit" class="btn btn-sm btn-outline-danger">Ngừng</button>
-                            </form>
-                        }
+                            }
+                            else
+                            {
+                                <button type="submit" class="btn btn-sm btn-outline-success">Hiện</button>
+                            }
+                        </form>
                     </td>
                 </tr>
             }

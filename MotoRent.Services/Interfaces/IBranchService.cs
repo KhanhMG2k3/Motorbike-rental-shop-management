@@ -9,4 +9,5 @@ public interface IBranchService
     Task<BranchDto> CreateAsync(CreateBranchDto dto);
     Task<BranchDto> UpdateAsync(int id, UpdateBranchDto dto);
     Task DeleteAsync(int id);
+    Task<bool> ToggleStatusAsync(int id);
 }

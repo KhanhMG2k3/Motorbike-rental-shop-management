@@ -3,6 +3,7 @@
     string Active(string controller) => controller == current ? "active" : "";
 }
 <ul class="nav nav-pills flex-nowrap overflow-auto mb-3 border-bottom pb-2">
+    <li class="nav-item"><a class="nav-link @Active("Branches")" asp-area="Admin" asp-controller="Branches" asp-action="Index">Chi nhánh</a></li>
     <li class="nav-item"><a class="nav-link @Active("Motorbikes")" asp-area="Admin" asp-controller="Motorbikes" asp-action="Index">Xe máy</a></li>
     <li class="nav-item"><a class="nav-link @Active("Brands")" asp-area="Admin" asp-controller="Brands" asp-action="Index">Hãng xe</a></li>
     <li class="nav-item"><a class="nav-link @Active("Categories")" asp-area="Admin" asp-controller="Categories" asp-action="Index">Loại xe</a></li>

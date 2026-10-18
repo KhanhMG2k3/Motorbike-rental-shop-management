@@ -24,6 +24,8 @@ public static class ServiceRegistration
         services.AddScoped<ILookupService, LookupService>();
 
         // Services - Dev 1 (Auth, Users, Branches, Payments, Dashboard): thêm ở đây
+        services.AddScoped<IBranchService, BranchService>();
+
         // Services - Dev 3 (Rentals, Reviews): thêm ở đây
 
         return services;

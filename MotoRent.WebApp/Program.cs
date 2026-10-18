@@ -29,6 +29,7 @@ builder.Services.AddHttpClient<MotorbikeApiClient>(ConfigureApiClient);
 builder.Services.AddHttpClient<CatalogAdminApiClient>(ConfigureApiClient);
 builder.Services.AddHttpClient<MaintenanceApiClient>(ConfigureApiClient);
 builder.Services.AddHttpClient<BranchApiClient>(ConfigureApiClient);
+builder.Services.AddHttpClient<UserAdminApiClient>(ConfigureApiClient);
 
 // TODO (Dev 1): Cookie Authentication
 

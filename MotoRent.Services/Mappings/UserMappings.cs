@@ -1,11 +1,30 @@
 using System.Linq.Expressions;
 using MotoRent.BusinessObjects.DTOs.Auth;
+using MotoRent.BusinessObjects.DTOs.Users;
 using MotoRent.BusinessObjects.Entities;
 
 namespace MotoRent.Services.Mappings;
 
 public static class UserMappings
 {
+    public static readonly Expression<Func<User, UserDto>> UserToDto = u => new UserDto
+    {
+        UserId = u.UserId,
+        Email = u.Email,
+        FullName = u.FullName,
+        Phone = u.Phone,
+        DateOfBirth = u.DateOfBirth,
+        Address = u.Address,
+        IdentityNumber = u.IdentityNumber,
+        DriverLicenseNumber = u.DriverLicenseNumber,
+        RoleId = u.RoleId,
+        RoleName = u.Role.RoleName,
+        BranchId = u.BranchId,
+        BranchName = u.Branch != null ? u.Branch.BranchName : null,
+        IsActive = u.IsActive,
+        CreatedAt = u.CreatedAt
+    };
+
     public static readonly Expression<Func<User, UserProfileDto>> UserToProfileDto = u => new UserProfileDto
     {
         UserId = u.UserId,

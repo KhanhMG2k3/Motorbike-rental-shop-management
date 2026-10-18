@@ -26,6 +26,7 @@ public static class ServiceRegistration
         // Services - Dev 1 (Auth, Users, Branches, Payments, Dashboard): thêm ở đây
         services.AddScoped<IBranchService, BranchService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IUserService, UserService>();
 
         // Services - Dev 3 (Rentals, Reviews): thêm ở đây
 

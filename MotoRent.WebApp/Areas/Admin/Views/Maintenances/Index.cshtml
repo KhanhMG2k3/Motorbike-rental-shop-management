@@ -1,0 +1,109 @@
+@model MaintenanceListViewModel
+@{
+    ViewData["Title"] = "Quản lý bảo dưỡng";
+    var f = Model.Filter;
+    var returnUrl = Context.Request.Path + Context.Request.QueryString;
+}
+
+<partial name="_AdminNav" />
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h4 mb-0">Bảo dưỡng xe</h1>
+        <small class="text-muted">@Model.Items.Count phiếu</small>
+    </div>
+    <a asp-action="Create" class="btn btn-primary">+ Lên lịch bảo dưỡng</a>
+</div>
+
+<partial name="_StatusMessage" />
+@if (Model.ErrorMessage != null)
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<form method="get" asp-action="Index" class="row g-2 mb-3">
+    <div class="col-6 col-md-3">
+        <select name="status" class="form-select">
+            <option value="">Mọi trạng thái</option>
+            @foreach (var option in AdminOptions.MaintenanceStatuses())
+            {
+                <option value="@option.Value" selected="@(option.Value == f.Status)">@option.Text</option>
+            }
+        </select>
+    </div>
+    <div class="col-6 col-md-3">
+        <select name="branchId" class="form-select">
+            <option value="">Mọi chi nhánh</option>
+            @foreach (var option in Model.BranchOptions)
+            {
+                <option value="@option.Value" selected="@(option.Value == f.BranchId?.ToString())">@option.Text</option>
+            }
+        </select>
+    </div>
+    @if (f.MotorbikeId.HasValue)
+    {
+        <input type="hidden" name="motorbikeId" value="@f.MotorbikeId" />
+    }
+    <div class="col-12 col-md-2 d-grid">
+        <button type="submit" class="btn btn-outline-primary">Lọc</button>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Xe</th>
+                <th>Chi nhánh</th>
+                <th>Thời gian</th>
+                <th>Nội dung</th>
+                <th class="text-end">Chi phí</th>
+                <th>Trạng thái</th>
+                <th class="text-end">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var m in Model.Items)
+            {
+                <tr>
+                    <td>
+                        <a asp-controller="Motorbikes" asp-action="Edit" asp-route-id="@m.MotorbikeId" class="fw-semibold text-decoration-none">@m.ModelName</a>
+                        <div class="small text-muted">@m.LicensePlate</div>
+                    </td>
+                    <td class="small">@m.BranchName</td>
+                    <td class="small text-nowrap">@DisplayHelper.Date(m.StartDate)<br />→ @DisplayHelper.Date(m.EndDate)</td>
+                    <td class="small">@m.Description</td>
+                    <td class="text-end text-nowrap">@DisplayHelper.Money(m.Cost)</td>
+                    <td><status-badge value="@m.Status" kind="maintenance" /></td>
+                    <td class="text-end text-nowrap">
+                        @if (m.Status == MaintenanceStatus.Scheduled)
+                        {
+                            <form asp-action="Start" asp-route-id="@m.MaintenanceId" method="post" class="d-inline"
+                                  onsubmit="return confirm('Bắt đầu bảo dưỡng? Xe sẽ tạm ngừng cho thuê.');">
+                                <input type="hidden" name="returnUrl" value="@returnUrl" />
+                                <button type="submit" class="btn btn-sm btn-outline-warning">Bắt đầu</button>
+                            </form>
+                        }
+                        @if (m.Status == MaintenanceStatus.InProgress)
+                        {
+                            <a asp-action="Complete" asp-route-id="@m.MaintenanceId" class="btn btn-sm btn-success">Hoàn thành</a>
+                        }
+                        @if (MaintenanceStatus.Open.Contains(m.Status))
+                        {
+                            <a asp-action="Edit" asp-route-id="@m.MaintenanceId" class="btn btn-sm btn-outline-primary">Sửa</a>
+                            <form asp-action="Cancel" asp-route-id="@m.MaintenanceId" method="post" class="d-inline"
+                                  onsubmit="return confirm('Huỷ phiếu bảo dưỡng này?');">
+                                <input type="hidden" name="returnUrl" value="@returnUrl" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Huỷ</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            @if (!Model.Items.Any() && Model.ErrorMessage == null)
+            {
+                <tr><td colspan="7" class="text-center text-muted">Không có phiếu bảo dưỡng.</td></tr>
+            }
+        </tbody>
+    </table>
+</div>

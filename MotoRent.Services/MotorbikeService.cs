@@ -15,17 +15,20 @@ public class MotorbikeService : IMotorbikeService
     private readonly IGenericRepository<Brand> _brandRepo;
     private readonly IGenericRepository<Category> _categoryRepo;
     private readonly IGenericRepository<Branch> _branchRepo;
+    private readonly IGenericRepository<MaintenanceRecord> _maintenanceRepo;
 
     public MotorbikeService(
         IMotorbikeRepository motorbikeRepo,
         IGenericRepository<Brand> brandRepo,
         IGenericRepository<Category> categoryRepo,
-        IGenericRepository<Branch> branchRepo)
+        IGenericRepository<Branch> branchRepo,
+        IGenericRepository<MaintenanceRecord> maintenanceRepo)
     {
         _motorbikeRepo = motorbikeRepo;
         _brandRepo = brandRepo;
         _categoryRepo = categoryRepo;
         _branchRepo = branchRepo;
+        _maintenanceRepo = maintenanceRepo;
     }
 
     public IQueryable<MotorbikeDto> QueryForOData()
@@ -97,11 +100,29 @@ public class MotorbikeService : IMotorbikeService
         if (dto.Status != MotorbikeStatus.Available && await _motorbikeRepo.HasActiveRentalAsync(id))
             throw new BusinessException("Xe đang có đơn thuê chờ xử lý, hãy huỷ hoặc đổi xe cho các đơn đó trước.");
 
+        // Xe đang có phiếu bảo dưỡng chưa xong → phải hoàn thành / huỷ phiếu, không đổi tay
+        if (dto.Status != MotorbikeStatus.Maintenance &&
+            await _maintenanceRepo.Query().AnyAsync(x => x.MotorbikeId == id && x.Status == MaintenanceStatus.InProgress))
+            throw new BusinessException("Xe đang có phiếu bảo dưỡng chưa xong, hãy hoàn thành hoặc huỷ phiếu bảo dưỡng trước.");
+
         entity.Status = dto.Status;
         entity.UpdatedAt = DateTime.Now;
         await _motorbikeRepo.SaveChangesAsync();
 
         return await GetByIdAsync(id);
+    }
+
+    public async Task<(MotorbikeDto Motorbike, string? OldImageUrl)> UpdateImageAsync(int id, string imageUrl)
+    {
+        var entity = await _motorbikeRepo.GetByIdAsync(id)
+            ?? throw new NotFoundException($"Không tìm thấy xe có Id = {id}.");
+
+        var oldImageUrl = entity.ImageUrl;
+        entity.ImageUrl = imageUrl;
+        entity.UpdatedAt = DateTime.Now;
+        await _motorbikeRepo.SaveChangesAsync();
+
+        return (await GetByIdAsync(id), oldImageUrl);
     }
 
     /// <summary>Xoá mềm: chuyển xe sang Inactive (giữ lịch sử đơn thuê, đánh giá).</summary>

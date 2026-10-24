@@ -45,4 +45,13 @@ public class MotorbikeRepository : GenericRepository<Motorbike>, IMotorbikeRepos
             d.MotorbikeId == motorbikeId &&
             RentalStatus.Active.Contains(d.Rental.Status));
     }
+
+    public Task<bool> HasActiveRentalBetweenAsync(int motorbikeId, DateTime start, DateTime end)
+    {
+        return _context.RentalDetails.AnyAsync(d =>
+            d.MotorbikeId == motorbikeId &&
+            RentalStatus.Active.Contains(d.Rental.Status) &&
+            d.Rental.StartDate < end &&
+            start < d.Rental.ExpectedReturnDate);
+    }
 }

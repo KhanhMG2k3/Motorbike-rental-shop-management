@@ -1,0 +1,44 @@
+@model MaintenanceCompleteViewModel
+@{
+    ViewData["Title"] = "Hoàn thành bảo dưỡng";
+    var m = Model.Current;
+}
+
+<partial name="_AdminNav" />
+
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <h1 class="h4 mb-3">Hoàn thành bảo dưỡng</h1>
+
+        <div class="card card-body mb-3 bg-light">
+            <div class="fw-semibold">@m.ModelName – @m.LicensePlate</div>
+            <div class="small text-muted">@m.BranchName · bắt đầu @DisplayHelper.Date(m.StartDate)</div>
+            <div class="small mt-1">@m.Description</div>
+        </div>
+
+        <form asp-action="Complete" asp-route-id="@m.MaintenanceId" method="post" class="card card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+
+            <div class="mb-3">
+                <label asp-for="Form.EndDate" class="form-label">Ngày hoàn thành</label>
+                <input asp-for="Form.EndDate" type="date" max="@DateTime.Today.ToString("yyyy-MM-dd")" class="form-control" />
+                <span asp-validation-for="Form.EndDate" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Form.Cost" class="form-label">Chi phí thực tế (đ)</label>
+                <input asp-for="Form.Cost" type="number" min="0" step="1000" class="form-control" />
+                <span asp-validation-for="Form.Cost" class="text-danger small"></span>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">Xác nhận hoàn thành</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Quay lại</a>
+            </div>
+            <p class="small text-muted mt-2 mb-0">Xe sẽ chuyển về trạng thái <strong>Sẵn sàng</strong> để cho thuê.</p>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

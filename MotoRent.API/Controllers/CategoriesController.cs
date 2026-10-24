@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MotoRent.BusinessObjects.Common;
+using MotoRent.BusinessObjects.Constants;
 using MotoRent.BusinessObjects.DTOs.Categories;
 using MotoRent.Services.Interfaces;
 
@@ -25,8 +27,8 @@ public class CategoriesController : ControllerBase
     public async Task<ActionResult<ApiResponse<CategoryDto>>> GetById(int id)
         => Ok(ApiResponse<CategoryDto>.Ok(await _categoryService.GetByIdAsync(id)));
 
-    // TODO (Dev 1): thêm [Authorize(Roles = AppRoles.Admin)] cho POST / PUT / DELETE khi đã có JWT
     [HttpPost]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> Create(CreateCategoryDto dto)
     {
         var created = await _categoryService.CreateAsync(dto);
@@ -35,10 +37,12 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> Update(int id, UpdateCategoryDto dto)
         => Ok(ApiResponse<CategoryDto>.Ok(await _categoryService.UpdateAsync(id, dto), "Cập nhật loại xe thành công."));
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<ApiResponse<object>>> Delete(int id)
     {
         await _categoryService.DeleteAsync(id);

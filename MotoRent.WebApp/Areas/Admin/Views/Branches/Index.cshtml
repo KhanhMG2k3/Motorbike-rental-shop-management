@@ -1,0 +1,65 @@
+@model List<BranchDto>
+@{
+    ViewData["Title"] = "Quản lý chi nhánh";
+}
+
+<partial name="_AdminNav" />
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">Chi nhánh</h1>
+    <a asp-action="Create" class="btn btn-primary">+ Thêm chi nhánh</a>
+</div>
+
+<partial name="_StatusMessage" />
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Tên chi nhánh</th>
+                <th>Địa chỉ</th>
+                <th>Điện thoại</th>
+                <th>Giờ mở cửa</th>
+                <th class="text-center">Số xe</th>
+                <th class="text-center">Nhân viên</th>
+                <th>Trạng thái</th>
+                <th class="text-end">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var b in Model)
+            {
+                <tr class="@(b.IsActive ? "" : "text-muted")">
+                    <td class="fw-semibold">@b.BranchName</td>
+                    <td>@b.Address</td>
+                    <td>@b.Phone</td>
+                    <td>@b.OpenTime.ToString("HH:mm") – @b.CloseTime.ToString("HH:mm")</td>
+                    <td class="text-center">@b.MotorbikeCount</td>
+                    <td class="text-center">@b.StaffCount</td>
+                    <td>
+                        @if (b.IsActive) { <span class="badge bg-success">Hoạt động</span> }
+                        else { <span class="badge bg-secondary">Ngừng</span> }
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <a asp-action="Edit" asp-route-id="@b.BranchId" class="btn btn-sm btn-outline-primary">Sửa</a>
+                        <form asp-action="ToggleStatus" asp-route-id="@b.BranchId" method="post" class="d-inline"
+                              onsubmit="return confirm('@(b.IsActive ? $"Ngừng hoạt động chi nhánh {b.BranchName}?" : $"Kích hoạt lại chi nhánh {b.BranchName}?")');">
+                            @if (b.IsActive)
+                            {
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Ngừng</button>
+                            }
+                            else
+                            {
+                                <button type="submit" class="btn btn-sm btn-outline-success">Hiện</button>
+                            }
+                        </form>
+                    </td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td colspan="8" class="text-center text-muted">Chưa có chi nhánh.</td></tr>
+            }
+        </tbody>
+    </table>
+</div>

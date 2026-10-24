@@ -22,7 +22,7 @@
     <div class="col-12 col-md-6">
         <div class="d-flex align-items-center gap-2 mb-1">
             <h1 class="h3 mb-0">@bike.ModelName</h1>
-            <span class="badge @DisplayHelper.MotorbikeStatusBadge(bike.Status)">@DisplayHelper.MotorbikeStatusText(bike.Status)</span>
+            <status-badge value="@bike.Status" kind="motorbike" />
         </div>
         <p class="text-muted">
             @bike.BrandName · @bike.CategoryName

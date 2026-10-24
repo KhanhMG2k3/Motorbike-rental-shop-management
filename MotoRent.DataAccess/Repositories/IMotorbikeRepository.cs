@@ -20,4 +20,7 @@ public interface IMotorbikeRepository : IGenericRepository<Motorbike>
 
     /// <summary>Xe đang nằm trong đơn Pending/Confirmed/Renting.</summary>
     Task<bool> HasActiveRentalAsync(int motorbikeId);
+
+    /// <summary>Xe có đơn Pending/Confirmed/Renting giao với khoảng [start, end) không (dùng khi lên lịch bảo dưỡng).</summary>
+    Task<bool> HasActiveRentalBetweenAsync(int motorbikeId, DateTime start, DateTime end);
 }

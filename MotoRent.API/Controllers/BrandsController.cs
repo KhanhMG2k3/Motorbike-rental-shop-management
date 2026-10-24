@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MotoRent.BusinessObjects.Common;
+using MotoRent.BusinessObjects.Constants;
 using MotoRent.BusinessObjects.DTOs.Brands;
 using MotoRent.Services.Interfaces;
 
@@ -25,8 +27,8 @@ public class BrandsController : ControllerBase
     public async Task<ActionResult<ApiResponse<BrandDto>>> GetById(int id)
         => Ok(ApiResponse<BrandDto>.Ok(await _brandService.GetByIdAsync(id)));
 
-    // TODO (Dev 1): thêm [Authorize(Roles = AppRoles.Admin)] cho POST / PUT / DELETE khi đã có JWT
     [HttpPost]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<ApiResponse<BrandDto>>> Create(CreateBrandDto dto)
     {
         var created = await _brandService.CreateAsync(dto);
@@ -35,10 +37,12 @@ public class BrandsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<ApiResponse<BrandDto>>> Update(int id, UpdateBrandDto dto)
         => Ok(ApiResponse<BrandDto>.Ok(await _brandService.UpdateAsync(id, dto), "Cập nhật hãng xe thành công."));
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<ApiResponse<object>>> Delete(int id)
     {
         await _brandService.DeleteAsync(id);

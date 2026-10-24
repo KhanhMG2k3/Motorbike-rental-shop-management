@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
@@ -20,11 +20,59 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Trang chủ</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Motorbikes" asp-action="Index">Thuê xe</a>
                         </li>
+                        @if (User.IsInRole(AppRoles.Admin) || User.IsInRole(AppRoles.Staff))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Quản trị</a>
+                                <ul class="dropdown-menu">
+                                    @if (User.IsInRole(AppRoles.Admin))
+                                    {
+                                        <li><a class="dropdown-item" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">Tổng quan</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    }
+                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Branches" asp-action="Index">Chi nhánh</a></li>
+                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Motorbikes" asp-action="Index">Xe máy</a></li>
+                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Brands" asp-action="Index">Hãng xe</a></li>
+                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Categories" asp-action="Index">Loại xe</a></li>
+                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Maintenances" asp-action="Index">Bảo dưỡng</a></li>
+                                    @if (User.IsInRole(AppRoles.Admin))
+                                    {
+                                        <li><a class="dropdown-item" asp-area="Admin" asp-controller="Users" asp-action="Index">Tài khoản & Nhân viên (Users)</a></li>
+                                    }
+                                </ul>
+                            </li>
+                        }
+                    </ul>
+                    <ul class="navbar-nav">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-dark fw-semibold" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    👤 @User.Identity.Name
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="Auth" asp-action="Profile">Hồ sơ cá nhân</a></li>
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="Auth" asp-action="ChangePassword">Đổi mật khẩu</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form asp-area="" asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
+                                            <button type="submit" class="dropdown-item text-danger">Đăng xuất</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Auth" asp-action="Login">Đăng nhập</a>
+                            </li>
+                        }
                     </ul>
                 </div>
             </div>

@@ -1,0 +1,34 @@
+@model CreateBranchDto
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+
+<div class="mb-3">
+    <label asp-for="BranchName" class="form-label">Tên chi nhánh <span class="text-danger">*</span></label>
+    <input asp-for="BranchName" class="form-control" maxlength="100" placeholder="VD: Chi nhánh Quận 1" />
+    <span asp-validation-for="BranchName" class="text-danger small"></span>
+</div>
+
+<div class="mb-3">
+    <label asp-for="Address" class="form-label">Địa chỉ <span class="text-danger">*</span></label>
+    <input asp-for="Address" class="form-control" maxlength="255" placeholder="Số nhà, đường, phường, quận..." />
+    <span asp-validation-for="Address" class="text-danger small"></span>
+</div>
+
+<div class="mb-3">
+    <label asp-for="Phone" class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+    <input asp-for="Phone" class="form-control" maxlength="11" placeholder="02812345678 hoặc 090..." />
+    <span asp-validation-for="Phone" class="text-danger small"></span>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label asp-for="OpenTime" class="form-label">Giờ mở cửa <span class="text-danger">*</span></label>
+        <input asp-for="OpenTime" type="time" class="form-control" />
+        <span asp-validation-for="OpenTime" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label asp-for="CloseTime" class="form-label">Giờ đóng cửa <span class="text-danger">*</span></label>
+        <input asp-for="CloseTime" type="time" class="form-control" />
+        <span asp-validation-for="CloseTime" class="text-danger small"></span>
+    </div>
+</div>

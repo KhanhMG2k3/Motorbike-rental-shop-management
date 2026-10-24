@@ -1,4 +1,6 @@
+using MotoRent.BusinessObjects.DTOs.Branches;
 using MotoRent.BusinessObjects.DTOs.Brands;
+using MotoRent.BusinessObjects.DTOs.Maintenances;
 using MotoRent.BusinessObjects.DTOs.Categories;
 using MotoRent.BusinessObjects.DTOs.Motorbikes;
 using MotoRent.BusinessObjects.DTOs.Rentals;
@@ -34,6 +36,25 @@ public interface IMotorbikeService
     Task<MotorbikeDto> UpdateAsync(int id, UpdateMotorbikeDto dto);
     Task<MotorbikeDto> UpdateStatusAsync(int id, UpdateMotorbikeStatusDto dto);
     Task DeleteAsync(int id);
+
+    /// <summary>Cập nhật đường dẫn ảnh, trả về ảnh cũ để API xoá file cũ.</summary>
+    Task<(MotorbikeDto Motorbike, string? OldImageUrl)> UpdateImageAsync(int id, string imageUrl);
+}
+
+public interface IMaintenanceService
+{
+    Task<List<MaintenanceDto>> GetListAsync(MaintenanceQuery query);
+    Task<MaintenanceDto> GetByIdAsync(int id);
+    Task<MaintenanceDto> CreateAsync(CreateMaintenanceDto dto, int? createdBy);
+    Task<MaintenanceDto> UpdateAsync(int id, UpdateMaintenanceDto dto);
+    Task<MaintenanceDto> StartAsync(int id);
+    Task<MaintenanceDto> CompleteAsync(int id, CompleteMaintenanceDto dto);
+    Task<MaintenanceDto> CancelAsync(int id);
+}
+
+public interface ILookupService
+{
+    Task<List<BranchLookupDto>> GetBranchesAsync();
 }
 
 public interface IRentalQueryService

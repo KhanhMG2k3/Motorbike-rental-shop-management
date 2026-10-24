@@ -28,4 +28,23 @@ public static class DisplayHelper
     };
 
     public static string EngineText(int? cc) => cc.HasValue ? $"{cc} cc" : "Xe điện";
+
+    public static string MaintenanceStatusText(string status) => status switch
+    {
+        MaintenanceStatus.Scheduled => "Chờ bảo dưỡng",
+        MaintenanceStatus.InProgress => "Đang bảo dưỡng",
+        MaintenanceStatus.Completed => "Hoàn thành",
+        MaintenanceStatus.Cancelled => "Đã huỷ",
+        _ => status
+    };
+
+    public static string MaintenanceStatusBadge(string status) => status switch
+    {
+        MaintenanceStatus.Scheduled => "bg-info text-dark",
+        MaintenanceStatus.InProgress => "bg-warning text-dark",
+        MaintenanceStatus.Completed => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    public static string Date(DateOnly? date) => date?.ToString("dd/MM/yyyy") ?? "—";
 }

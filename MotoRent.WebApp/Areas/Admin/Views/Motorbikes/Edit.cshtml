@@ -1,0 +1,101 @@
+@model MotorbikeFormViewModel
+@{
+    var bike = Model.Current!;
+    ViewData["Title"] = "Sửa xe " + bike.LicensePlate;
+    var returnUrl = Url.Action("Edit", new { id = Model.MotorbikeId });
+}
+
+<partial name="_AdminNav" />
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h1 class="h4 mb-0">@bike.ModelName – @bike.LicensePlate</h1>
+    <status-badge value="@bike.Status" kind="motorbike" />
+    <a asp-area="" asp-controller="Motorbikes" asp-action="Details" asp-route-id="@Model.MotorbikeId" target="_blank" class="ms-auto small">Xem trang khách ↗</a>
+</div>
+
+<partial name="_StatusMessage" />
+
+<div class="row g-4">
+    <div class="col-12 col-lg-8">
+        <form asp-action="Edit" asp-route-id="@Model.MotorbikeId" method="post" class="card card-body">
+            <partial name="_MotorbikeForm" model="Model" />
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Quay lại</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-12 col-lg-4">
+        <!-- Ảnh xe -->
+        <div class="card mb-3">
+            <img src="@(bike.ImageUrl ?? Url.Content("~/images/no-image.svg"))"
+                 onerror="this.onerror=null;this.src='@Url.Content("~/images/no-image.svg")';"
+                 class="card-img-top bike-card-img" alt="@bike.ModelName" />
+            <div class="card-body">
+                <form asp-action="UploadImage" asp-route-id="@Model.MotorbikeId" method="post" enctype="multipart/form-data">
+                    <label for="imageFile" class="form-label small">Tải ảnh mới (.jpg, .png, .webp – tối đa 2 MB)</label>
+                    <input type="file" id="imageFile" name="imageFile" class="form-control form-control-sm mb-2"
+                           accept=".jpg,.jpeg,.png,.webp" required />
+                    <button type="submit" class="btn btn-sm btn-outline-primary w-100">Tải ảnh lên</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Đổi trạng thái -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2 class="h6">Trạng thái xe</h2>
+                @if (bike.Status == MotorbikeStatus.Rented)
+                {
+                    <p class="small text-muted mb-0">Xe đang được thuê. Trạng thái sẽ tự đổi khi khách trả xe.</p>
+                }
+                else
+                {
+                    <form asp-action="ChangeStatus" asp-route-id="@Model.MotorbikeId" method="post" class="d-flex gap-2">
+                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                        <select name="status" class="form-select form-select-sm">
+                            @foreach (var option in AdminOptions.SettableMotorbikeStatuses())
+                            {
+                                <option value="@option.Value" selected="@(option.Value == bike.Status)">@option.Text</option>
+                            }
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-outline-secondary text-nowrap">Cập nhật</button>
+                    </form>
+                    <p class="small text-muted mt-2 mb-0">Bảo dưỡng có kế hoạch nên tạo <a asp-controller="Maintenances" asp-action="Create" asp-route-motorbikeId="@Model.MotorbikeId">phiếu bảo dưỡng</a> thay vì đổi tay.</p>
+                }
+            </div>
+        </div>
+
+        <!-- Lịch sử bảo dưỡng -->
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h2 class="h6 mb-0">Lịch sử bảo dưỡng</h2>
+                    <a asp-controller="Maintenances" asp-action="Create" asp-route-motorbikeId="@Model.MotorbikeId" class="btn btn-sm btn-outline-primary">+ Lên lịch</a>
+                </div>
+                @if (!Model.Maintenances.Any())
+                {
+                    <p class="small text-muted mb-0">Chưa có phiếu bảo dưỡng.</p>
+                }
+                <ul class="list-group list-group-flush">
+                    @foreach (var m in Model.Maintenances)
+                    {
+                        <li class="list-group-item px-0 small">
+                            <div class="d-flex justify-content-between">
+                                <span>@DisplayHelper.Date(m.StartDate) → @DisplayHelper.Date(m.EndDate)</span>
+                                <status-badge value="@m.Status" kind="maintenance" />
+                            </div>
+                            <div class="text-muted">@m.Description</div>
+                            <div>@DisplayHelper.Money(m.Cost)</div>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

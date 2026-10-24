@@ -1,0 +1,131 @@
+@model AdminMotorbikeListViewModel
+@{
+    ViewData["Title"] = "Quản lý xe máy";
+    var f = Model.Filter;
+
+    var routeValues = new Dictionary<string, string>();
+    if (!string.IsNullOrWhiteSpace(f.Keyword)) routeValues["keyword"] = f.Keyword;
+    if (!string.IsNullOrEmpty(f.Status)) routeValues["status"] = f.Status;
+    if (f.BranchId.HasValue) routeValues["branchId"] = f.BranchId.Value.ToString();
+    if (f.BrandId.HasValue) routeValues["brandId"] = f.BrandId.Value.ToString();
+
+    var pagination = new PaginationViewModel
+    {
+        Page = f.Page,
+        TotalPages = Model.TotalPages,
+        Controller = "Motorbikes",
+        Action = "Index",
+        RouteValues = routeValues
+    };
+    var returnUrl = Context.Request.Path + Context.Request.QueryString;
+}
+
+<partial name="_AdminNav" />
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h4 mb-0">Xe máy</h1>
+        <small class="text-muted">@Model.TotalCount xe</small>
+    </div>
+    <a asp-action="Create" class="btn btn-primary">+ Thêm xe</a>
+</div>
+
+<partial name="_StatusMessage" />
+@if (Model.ErrorMessage != null)
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<form method="get" asp-action="Index" class="row g-2 mb-3">
+    <div class="col-12 col-md-4">
+        <input name="keyword" value="@f.Keyword" class="form-control" placeholder="Tên xe hoặc biển số..." />
+    </div>
+    <div class="col-6 col-md-2">
+        <select name="status" asp-items="AdminOptions.MotorbikeStatuses()" class="form-select">
+            <option value="">Mọi trạng thái</option>
+        </select>
+    </div>
+    <div class="col-6 col-md-2">
+        <select name="branchId" asp-items="Model.BranchOptions" class="form-select">
+            <option value="">Mọi chi nhánh</option>
+        </select>
+    </div>
+    <div class="col-6 col-md-2">
+        <select name="brandId" asp-items="Model.BrandOptions" class="form-select">
+            <option value="">Mọi hãng</option>
+        </select>
+    </div>
+    <div class="col-6 col-md-2 d-grid">
+        <button type="submit" class="btn btn-outline-primary">Lọc</button>
+    </div>
+</form>
+@* Giữ giá trị đã chọn trong các ô select lọc *@
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const values = { status: '@f.Status', branchId: '@f.BranchId', brandId: '@f.BrandId' };
+        for (const [name, value] of Object.entries(values)) {
+            const el = document.querySelector(`select[name="${name}"]`);
+            if (el) el.value = value;
+        }
+    });
+</script>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th style="width:72px">Ảnh</th>
+                <th>Xe</th>
+                <th>Hãng / Loại</th>
+                <th>Chi nhánh</th>
+                <th class="text-end">Giá / ngày</th>
+                <th>Trạng thái</th>
+                <th class="text-end">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var bike in Model.Items)
+            {
+                <tr>
+                    <td>
+                        <img src="@(bike.ImageUrl ?? Url.Content("~/images/no-image.svg"))"
+                             onerror="this.onerror=null;this.src='@Url.Content("~/images/no-image.svg")';"
+                             class="rounded" style="width:64px;height:44px;object-fit:cover" alt="" />
+                    </td>
+                    <td>
+                        <div class="fw-semibold">@bike.ModelName</div>
+                        <small class="text-muted">@bike.LicensePlate · @bike.ManufactureYear</small>
+                    </td>
+                    <td class="small">@bike.BrandName<br />@bike.CategoryName</td>
+                    <td class="small">@bike.BranchName</td>
+                    <td class="text-end">@DisplayHelper.Money(bike.PricePerDay)</td>
+                    <td><status-badge value="@bike.Status" kind="motorbike" /></td>
+                    <td class="text-end text-nowrap">
+                        <a asp-action="Edit" asp-route-id="@bike.MotorbikeId" class="btn btn-sm btn-outline-primary">Sửa</a>
+                        @if (bike.Status != MotorbikeStatus.Inactive)
+                        {
+                            <form asp-action="Deactivate" asp-route-id="@bike.MotorbikeId" method="post" class="d-inline"
+                                  onsubmit="return confirm('Ngừng cho thuê xe @bike.LicensePlate?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Ngừng</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form asp-action="ChangeStatus" asp-route-id="@bike.MotorbikeId" method="post" class="d-inline">
+                                <input type="hidden" name="status" value="@MotorbikeStatus.Available" />
+                                <input type="hidden" name="returnUrl" value="@returnUrl" />
+                                <button type="submit" class="btn btn-sm btn-outline-success">Mở lại</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            @if (!Model.Items.Any() && Model.ErrorMessage == null)
+            {
+                <tr><td colspan="7" class="text-center text-muted">Không có xe phù hợp.</td></tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<partial name="_Pagination" model="pagination" />

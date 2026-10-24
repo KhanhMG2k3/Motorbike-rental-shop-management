@@ -22,7 +22,13 @@ public static class ServiceRegistration
         services.AddScoped<IRentalQueryService, RentalQueryService>();
 
         // Services - Dev 1 (Auth, Users, Branches, Payments, Dashboard): thêm ở đây
+
         // Services - Dev 3 (Rentals, Reviews): thêm ở đây
+        services.AddScoped<IRentalService, RentalService>();
+        services.AddScoped<IReviewService, ReviewService>();
+
+
+
 
         return services;
     }

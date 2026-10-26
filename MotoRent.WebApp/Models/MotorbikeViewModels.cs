@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using MotoRent.BusinessObjects.DTOs.Motorbikes;
+using MotoRent.BusinessObjects.DTOs.Reviews;
 
 namespace MotoRent.WebApp.Models;
 
@@ -60,6 +61,7 @@ public class MotorbikeDetailViewModel
 {
     public MotorbikeDto Motorbike { get; set; } = null!;
     public List<MotorbikeDto> SimilarMotorbikes { get; set; } = new();
+    public List<ReviewDto> Reviews { get; set; } = new();
 
     [Display(Name = "Ngày nhận xe")]
     public DateTime? StartDate { get; set; }

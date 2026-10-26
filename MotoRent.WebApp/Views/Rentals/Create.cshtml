@@ -1,0 +1,187 @@
+﻿@model CustomerCreateRentalViewModel
+@{
+    ViewData["Title"] = "Đặt thuê xe máy";
+    var primary = Model.SelectedMotorbike;
+    var minDate = DateTime.Now.ToString("yyyy-MM-ddTHH:mm");
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Motorbikes" asp-action="Index">Thuê xe</a></li>
+        <li class="breadcrumb-item"><a asp-controller="Motorbikes" asp-action="Details" asp-route-id="@primary.MotorbikeId">@primary.ModelName</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Đặt thuê xe</li>
+    </ol>
+</nav>
+
+<h1 class="h3 mb-3">Đặt đơn thuê xe máy</h1>
+
+@if (Model.MissingDrivingDocs)
+{
+    <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <strong>⚠️ Lưu ý giấy tờ khi nhận xe:</strong> Hồ sơ của bạn hiện chưa cập nhật đủ <strong>Số CCCD</strong> hoặc <strong>Giấy phép lái xe</strong>. Bạn vẫn có thể đặt giữ xe trước, nhưng cần cập nhật đầy đủ trước khi đến cửa hàng nhận xe.
+        </div>
+        <a asp-controller="Auth" asp-action="Profile" target="_blank" class="btn btn-sm btn-warning fw-semibold">Cập nhật hồ sơ</a>
+    </div>
+}
+
+<form asp-action="Create" method="post">
+    <input type="hidden" name="primaryMotorbikeId" value="@Model.PrimaryMotorbikeId" />
+    <input type="hidden" asp-for="Form.BranchId" />
+
+    <div class="row g-4">
+        <!-- Cột trái: Thông tin đặt thuê -->
+        <div class="col-12 col-lg-7">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Chi nhánh nhận & trả xe</label>
+                        <input type="text" class="form-control bg-light" value="📍 @primary.BranchName" readonly />
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-sm-6">
+                            <label asp-for="Form.StartDate" class="form-label fw-semibold">Thời điểm nhận xe <span class="text-danger">*</span></label>
+                            <input asp-for="Form.StartDate" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" min="@minDate" class="form-control" id="startDateInput" />
+                            <span asp-validation-for="Form.StartDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label asp-for="Form.ExpectedReturnDate" class="form-label fw-semibold">Thời điểm hẹn trả <span class="text-danger">*</span></label>
+                            <input asp-for="Form.ExpectedReturnDate" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" min="@minDate" class="form-control" id="endDateInput" />
+                            <span asp-validation-for="Form.ExpectedReturnDate" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Chọn xe thuê tại @primary.BranchName <span class="text-danger">*</span></label>
+                        <span asp-validation-for="Form.MotorbikeIds" class="text-danger small d-block mb-2"></span>
+
+                        <div class="list-group">
+                            @foreach (var b in Model.BranchMotorbikes)
+                            {
+                                var isChecked = Model.Form.MotorbikeIds.Contains(b.MotorbikeId);
+                                <label class="list-group-item d-flex align-items-center gap-3 py-2" style="cursor:pointer;">
+                                    <input class="form-check-input flex-shrink-0 bike-checkbox"
+                                           type="checkbox"
+                                           name="Form.MotorbikeIds"
+                                           value="@b.MotorbikeId"
+                                           checked="@isChecked"
+                                           data-price="@b.PricePerDay.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                           data-deposit="@b.DepositAmount.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
+                                    <img src="@(b.ImageUrl ?? Url.Content("~/images/no-image.svg"))"
+                                         onerror="this.onerror=null;this.src='@Url.Content("~/images/no-image.svg")';"
+                                         alt="@b.ModelName"
+                                         style="width:56px;height:42px;object-fit:cover;"
+                                         class="rounded border" />
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold">
+                                            @b.ModelName
+                                            @if (b.MotorbikeId == primary.MotorbikeId)
+                                            {
+                                                <span class="badge bg-primary ms-1">Đang chọn</span>
+                                            }
+                                        </div>
+                                        <div class="small text-muted">@b.LicensePlate · @b.CategoryName · Cọc @DisplayHelper.Money(b.DepositAmount)</div>
+                                    </div>
+                                    <div class="text-end fw-bold text-primary text-nowrap">
+                                        @DisplayHelper.Money(b.PricePerDay)<small class="text-muted fw-normal">/ngày</small>
+                                    </div>
+                                </label>
+                            }
+                        </div>
+                        <div class="form-text">Bạn có thể đánh dấu chọn thêm xe khác cùng chi nhánh nếu đi theo nhóm.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Form.Note" class="form-label fw-semibold">Ghi chú thêm (tuỳ chọn)</label>
+                        <textarea asp-for="Form.Note" class="form-control" rows="2" placeholder="VD: Cần mũ bảo hiểm 3/4, dự kiến đi Vũng Tàu..."></textarea>
+                        <span asp-validation-for="Form.Note" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cột phải: Tóm tắt chi phí tạm tính -->
+        <div class="col-12 col-lg-5">
+            <div class="card shadow-sm border-0 sticky-lg-top" style="top: 1rem;">
+                <div class="card-body p-4">
+                    <h2 class="h5 fw-bold mb-3 border-bottom pb-2">Tóm tắt chi phí dự kiến</h2>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Số lượng xe chọn:</span>
+                        <strong id="summaryBikeCount">1 xe</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Thời gian thuê (làm tròn ngày):</span>
+                        <strong id="summaryDays">-- ngày</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Tiền thuê tạm tính:</span>
+                        <span class="fs-5 fw-bold text-primary" id="summarySubTotal">-- đ</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 pb-3 border-bottom">
+                        <span class="text-muted">Tiền cọc (hoàn lại khi trả xe):</span>
+                        <strong class="text-dark" id="summaryDeposit">-- đ</strong>
+                    </div>
+
+                    <div class="small text-muted bg-light p-3 rounded mb-3">
+                        <ul class="mb-0 ps-3">
+                            <li>Đơn mới tạo sẽ ở trạng thái <strong>Chờ duyệt</strong>.</li>
+                            <li>Giá thuê mỗi ngày được chốt cố định tại thời điểm đặt đơn.</li>
+                            <li>Khi nhận xe tại cửa hàng, vui lòng xuất trình <strong>CCCD</strong> và <strong>GPLX</strong> bản gốc.</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg fw-semibold">Xác nhận đặt thuê xe</button>
+                        <a asp-controller="Motorbikes" asp-action="Details" asp-route-id="@primary.MotorbikeId" class="btn btn-outline-secondary">Quay lại</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const startInput = document.getElementById('startDateInput');
+            const endInput = document.getElementById('endDateInput');
+            const checkboxes = document.querySelectorAll('.bike-checkbox');
+            const fmt = new Intl.NumberFormat('vi-VN');
+
+            function recalc() {
+                const start = new Date(startInput.value);
+                const end = new Date(endInput.value);
+                let days = 0;
+                if (!isNaN(start) && !isNaN(end) && end > start) {
+                    days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+                }
+
+                let count = 0;
+                let pricePerDaySum = 0;
+                let depositSum = 0;
+                checkboxes.forEach(cb => {
+                    if (cb.checked) {
+                        count++;
+                        pricePerDaySum += parseFloat(cb.dataset.price || '0');
+                        depositSum += parseFloat(cb.dataset.deposit || '0');
+                    }
+                });
+
+                document.getElementById('summaryBikeCount').textContent = count + ' xe';
+                document.getElementById('summaryDays').textContent = days > 0 ? (days + ' ngày') : 'Ngày chưa hợp lệ';
+                document.getElementById('summarySubTotal').textContent = days > 0 ? (fmt.format(pricePerDaySum * days) + ' đ') : '0 đ';
+                document.getElementById('summaryDeposit').textContent = fmt.format(depositSum) + ' đ';
+            }
+
+            startInput.addEventListener('change', recalc);
+            endInput.addEventListener('change', recalc);
+            checkboxes.forEach(cb => cb.addEventListener('change', recalc));
+            recalc();
+        })();
+    </script>
+}

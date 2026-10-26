@@ -46,5 +46,45 @@ public static class DisplayHelper
         _ => "bg-secondary"
     };
 
+    public static string RentalStatusText(string status) => status switch
+    {
+        RentalStatus.Pending => "Chờ duyệt",
+        RentalStatus.Confirmed => "Đã xác nhận",
+        RentalStatus.Renting => "Đang thuê",
+        RentalStatus.Completed => "Hoàn thành",
+        RentalStatus.Cancelled => "Đã huỷ",
+        _ => status
+    };
+
+    public static string RentalStatusBadge(string status) => status switch
+    {
+        RentalStatus.Pending => "bg-warning text-dark",
+        RentalStatus.Confirmed => "bg-info text-dark",
+        RentalStatus.Renting => "bg-primary",
+        RentalStatus.Completed => "bg-success",
+        RentalStatus.Cancelled => "bg-secondary",
+        _ => "bg-dark"
+    };
+
+    public static string PaymentTypeText(string type) => type switch
+    {
+        PaymentType.Deposit => "Tiền cọc",
+        PaymentType.RentalFee => "Tiền thuê xe",
+        PaymentType.Penalty => "Phí phạt (trễ / hư hỏng)",
+        PaymentType.Refund => "Hoàn trả tiền cọc",
+        _ => type
+    };
+
+    public static string PaymentMethodText(string method) => method switch
+    {
+        PaymentMethod.Cash => "Tiền mặt",
+        PaymentMethod.BankTransfer => "Chuyển khoản",
+        PaymentMethod.Momo => "Ví MoMo",
+        PaymentMethod.VNPay => "VNPay",
+        _ => method
+    };
+
     public static string Date(DateOnly? date) => date?.ToString("dd/MM/yyyy") ?? "—";
+
+    public static string DateTimeText(DateTime? dt) => dt?.ToString("dd/MM/yyyy HH:mm") ?? "—";
 }

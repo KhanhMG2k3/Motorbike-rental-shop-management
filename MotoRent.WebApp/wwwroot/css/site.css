@@ -42,3 +42,57 @@ body {
 .bike-card:hover {
   box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .12);
 }
+
+/* ===== Ẩn validation-summary khi không có lỗi ===== */
+.validation-summary-valid {
+    display: none;
+}
+
+/* ===== Tiến trình trạng thái đơn thuê (Stepper) ===== */
+.rental-stepper {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    gap: 0.5rem;
+}
+
+.rental-step {
+    flex: 1;
+    text-align: center;
+    padding: 0.75rem 0.5rem;
+    border-radius: 0.5rem;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    font-size: 0.875rem;
+}
+
+    .rental-step.done {
+        background-color: #e8f5e9;
+        border-color: #198754;
+        color: #146c43;
+        font-weight: 600;
+    }
+
+    .rental-step.current {
+        background-color: #cfe2ff;
+        border-color: #0d6efd;
+        color: #084298;
+        font-weight: 700;
+    }
+
+/* ===== Chế độ in hoá đơn quyết toán ===== */
+@media print {
+    header, footer, .no-print {
+        display: none !important;
+    }
+
+    body {
+        margin-bottom: 0 !important;
+        background: #fff !important;
+    }
+
+    .container {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+}

@@ -12,7 +12,7 @@
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">MotoRent</a>
+                <a class="navbar-brand fw-bold text-primary" asp-area="" asp-controller="Home" asp-action="Index">MotoRent</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -25,6 +25,12 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Motorbikes" asp-action="Index">Thuê xe</a>
                         </li>
+                        @if (User.IsInRole(AppRoles.Customer))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Rentals" asp-action="MyRentals">Đơn thuê của tôi</a>
+                            </li>
+                        }
                         @if (User.IsInRole(AppRoles.Admin) || User.IsInRole(AppRoles.Staff))
                         {
                             <li class="nav-item dropdown">
@@ -35,11 +41,13 @@
                                         <li><a class="dropdown-item" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">Tổng quan</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                     }
-                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Branches" asp-action="Index">Chi nhánh</a></li>
+                                    <li><a class="dropdown-item fw-semibold" asp-area="Admin" asp-controller="Rentals" asp-action="Index">Đơn thuê xe</a></li>
+                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Maintenances" asp-action="Index">Bảo dưỡng</a></li>
+                                    <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" asp-area="Admin" asp-controller="Motorbikes" asp-action="Index">Xe máy</a></li>
                                     <li><a class="dropdown-item" asp-area="Admin" asp-controller="Brands" asp-action="Index">Hãng xe</a></li>
                                     <li><a class="dropdown-item" asp-area="Admin" asp-controller="Categories" asp-action="Index">Loại xe</a></li>
-                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Maintenances" asp-action="Index">Bảo dưỡng</a></li>
+                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Branches" asp-action="Index">Chi nhánh</a></li>
                                     @if (User.IsInRole(AppRoles.Admin))
                                     {
                                         <li><a class="dropdown-item" asp-area="Admin" asp-controller="Users" asp-action="Index">Tài khoản & Nhân viên (Users)</a></li>
@@ -56,6 +64,11 @@
                                     👤 @User.Identity.Name
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end">
+                                    @if (User.IsInRole(AppRoles.Customer))
+                                    {
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Rentals" asp-action="MyRentals">Đơn thuê của tôi</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    }
                                     <li><a class="dropdown-item" asp-area="" asp-controller="Auth" asp-action="Profile">Hồ sơ cá nhân</a></li>
                                     <li><a class="dropdown-item" asp-area="" asp-controller="Auth" asp-action="ChangePassword">Đổi mật khẩu</a></li>
                                     <li><hr class="dropdown-divider"></li>
@@ -71,6 +84,9 @@
                         {
                             <li class="nav-item">
                                 <a class="nav-link text-dark" asp-area="" asp-controller="Auth" asp-action="Login">Đăng nhập</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="btn btn-primary btn-sm ms-sm-2 mt-1 mt-sm-1" asp-area="" asp-controller="Auth" asp-action="Register">Đăng ký</a>
                             </li>
                         }
                     </ul>

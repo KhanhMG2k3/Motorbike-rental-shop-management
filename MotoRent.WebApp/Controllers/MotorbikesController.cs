@@ -10,11 +10,13 @@ public class MotorbikesController : Controller
     private const int PageSize = 9;
 
     private readonly MotorbikeApiClient _api;
+    private readonly ReviewApiClient _reviewApi;
     private readonly ILogger<MotorbikesController> _logger;
 
-    public MotorbikesController(MotorbikeApiClient api, ILogger<MotorbikesController> logger)
+    public MotorbikesController(MotorbikeApiClient api, ReviewApiClient reviewApi, ILogger<MotorbikesController> logger)
     {
         _api = api;
+        _reviewApi = reviewApi;
         _logger = logger;
     }
 
@@ -55,12 +57,15 @@ public class MotorbikesController : Controller
             var bike = await _api.GetByIdAsync(id);
             if (bike == null) return NotFound();
 
+            var reviewsResult = await _reviewApi.GetByMotorbikeAsync(id);
+
             var model = new MotorbikeDetailViewModel
             {
                 Motorbike = bike,
                 StartDate = startDate,
                 EndDate = endDate,
-                SimilarMotorbikes = await _api.GetSimilarAsync(bike.CategoryId, bike.MotorbikeId)
+                SimilarMotorbikes = await _api.GetSimilarAsync(bike.CategoryId, bike.MotorbikeId),
+                Reviews = reviewsResult.Data ?? new()
             };
 
             if (startDate.HasValue && endDate.HasValue)

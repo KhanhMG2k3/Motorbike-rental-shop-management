@@ -1,7 +1,7 @@
 @model MotorbikeDto
 
 <div class="card h-100 bike-card">
-    <a asp-controller="Motorbikes" asp-action="Details" asp-route-id="@Model.MotorbikeId">
+    <a asp-area="" asp-controller="Motorbikes" asp-action="Details" asp-route-id="@Model.MotorbikeId">
         <img src="@(Model.ImageUrl ?? Url.Content("~/images/no-image.svg"))"
              onerror="this.onerror=null;this.src='@Url.Content("~/images/no-image.svg")';"
              class="card-img-top bike-card-img" alt="@Model.ModelName" loading="lazy" />
@@ -21,9 +21,15 @@
                 <span>⭐ @Model.AverageRating.Value.ToString("0.0") (@Model.ReviewCount)</span>
             }
         </p>
-        <div class="mt-auto d-flex justify-content-between align-items-center">
+        <div class="mt-auto d-flex justify-content-between align-items-center gap-1 flex-wrap">
             <span class="fs-5 fw-bold text-primary">@DisplayHelper.Money(Model.PricePerDay)<small class="fs-6 fw-normal text-muted">/ngày</small></span>
-            <a class="btn btn-outline-primary btn-sm" asp-controller="Motorbikes" asp-action="Details" asp-route-id="@Model.MotorbikeId">Chi tiết</a>
+            <div class="d-flex gap-1">
+                <a class="btn btn-outline-secondary btn-sm" asp-area="" asp-controller="Motorbikes" asp-action="Details" asp-route-id="@Model.MotorbikeId">Chi tiết</a>
+                @if (Model.Status == MotorbikeStatus.Available && !User.IsInRole(AppRoles.Admin) && !User.IsInRole(AppRoles.Staff))
+                {
+                    <a class="btn btn-primary btn-sm" asp-area="" asp-controller="Rentals" asp-action="Create" asp-route-motorbikeId="@Model.MotorbikeId">Thuê xe</a>
+                }
+            </div>
         </div>
     </div>
 </div>

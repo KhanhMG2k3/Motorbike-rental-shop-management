@@ -3,6 +3,7 @@
     var bike = Model.Motorbike;
     ViewData["Title"] = bike.ModelName;
     var minDate = DateTime.Today.ToString("yyyy-MM-ddTHH:mm");
+    var canShowRentButton = !User.IsInRole(AppRoles.Admin) && !User.IsInRole(AppRoles.Staff);
 }
 
 <nav aria-label="breadcrumb">
@@ -51,20 +52,31 @@
             <p>@bike.Description</p>
         }
 
+        @if (canShowRentButton && bike.Status == MotorbikeStatus.Available && Model.IsAvailable != true)
+        {
+            <div class="d-grid mb-3">
+                <a asp-controller="Rentals" asp-action="Create"
+                   asp-route-motorbikeId="@bike.MotorbikeId"
+                   class="btn btn-primary btn-lg fw-semibold">
+                    🛵 Đặt thuê xe này
+                </a>
+            </div>
+        }
+
         <!-- Kiểm tra lịch trống -->
         <form method="get" asp-action="Details" asp-route-id="@bike.MotorbikeId" class="card card-body bg-light">
-            <h2 class="h6">Kiểm tra lịch trống</h2>
+            <h2 class="h6">Kiểm tra lịch trống theo ngày cụ thể</h2>
             <div class="row g-2">
                 <div class="col-12 col-sm-6">
                     <label asp-for="StartDate" class="form-label small"></label>
-                    <input asp-for="StartDate" name="startDate" type="datetime-local" min="@minDate" class="form-control" required />
+                    <input asp-for="StartDate" name="startDate" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" min="@minDate" class="form-control" required />
                 </div>
                 <div class="col-12 col-sm-6">
                     <label asp-for="EndDate" class="form-label small"></label>
-                    <input asp-for="EndDate" name="endDate" type="datetime-local" min="@minDate" class="form-control" required />
+                    <input asp-for="EndDate" name="endDate" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" min="@minDate" class="form-control" required />
                 </div>
             </div>
-            <button type="submit" class="btn btn-outline-primary mt-2">Kiểm tra</button>
+            <button type="submit" class="btn btn-outline-primary mt-2">Kiểm tra lịch trống</button>
 
             @if (Model.AvailabilityError != null)
             {
@@ -73,9 +85,20 @@
             else if (Model.IsAvailable == true)
             {
                 <div class="alert alert-success mt-3 mb-0">
-                    ✅ Xe còn trống trong <strong>@Model.RentalDays ngày</strong>.
-                    Tạm tính: <strong>@DisplayHelper.Money(Model.EstimatedPrice)</strong> (chưa gồm cọc).
-                    @* TODO (Dev 3): nút "Đặt xe" chuyển sang trang tạo đơn thuê *@
+                    <div>
+                        ✅ Xe còn trống trong <strong>@Model.RentalDays ngày</strong>.
+                        Tạm tính: <strong>@DisplayHelper.Money(Model.EstimatedPrice)</strong> (chưa gồm cọc).
+                    </div>
+                    @if (canShowRentButton)
+                    {
+                        <a asp-controller="Rentals" asp-action="Create"
+                           asp-route-motorbikeId="@bike.MotorbikeId"
+                           asp-route-startDate="@Model.StartDate?.ToString("yyyy-MM-ddTHH:mm")"
+                           asp-route-endDate="@Model.EndDate?.ToString("yyyy-MM-ddTHH:mm")"
+                           class="btn btn-success w-100 fw-semibold mt-2">
+                            Đặt thuê xe ngay với lịch này →
+                        </a>
+                    }
                 </div>
             }
             else if (Model.IsAvailable == false)
@@ -84,6 +107,50 @@
             }
         </form>
     </div>
+</div>
+
+<!-- Đánh giá từ khách hàng -->
+<div class="mt-5">
+    <h2 class="h5 mb-3">Đánh giá từ khách thuê trước (@Model.Reviews.Count)</h2>
+    @if (!Model.Reviews.Any())
+    {
+        <div class="card card-body bg-light text-muted">
+            Chưa có đánh giá nào cho mẫu xe này. Hãy là người đầu tiên trải nghiệm và để lại nhận xét!
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var rv in Model.Reviews)
+            {
+                <div class="col-12 col-md-6">
+                    <div class="card h-100 shadow-sm border-0 bg-light">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-semibold">@rv.CustomerName</span>
+                                <small class="text-muted">@DisplayHelper.DateTimeText(rv.CreatedAt)</small>
+                            </div>
+                            <div class="text-warning mb-2">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <span>@(i <= rv.Rating ? "★" : "☆")</span>
+                                }
+                                <span class="text-dark small fw-semibold ms-1">(@rv.Rating/5)</span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(rv.Comment))
+                            {
+                                <p class="mb-0 small">@rv.Comment</p>
+                            }
+                            else
+                            {
+                                <p class="mb-0 small text-muted fst-italic">Khách hàng không để lại bình luận.</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
 </div>
 
 @if (Model.SimilarMotorbikes.Any())

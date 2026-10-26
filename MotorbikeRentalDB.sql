@@ -22,6 +22,10 @@ GO
 USE MotorbikeRentalDB;
 GO
 
+-- Tắt nhảy cóc +1000 khi restart máy
+ALTER DATABASE SCOPED CONFIGURATION SET IDENTITY_CACHE = OFF;
+GO
+
 /* =====================================================================
    1. BẢNG DANH MỤC / NGƯỜI DÙNG
    ===================================================================== */

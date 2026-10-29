@@ -30,6 +30,11 @@ public static class ServiceRegistration
         services.AddScoped<IDashboardService, DashboardService>();
 
         // Services - Dev 3 (Rentals, Reviews): thêm ở đây
+        services.AddScoped<IRentalService, RentalService>();
+        services.AddScoped<IReviewService, ReviewService>();
+
+
+
 
         return services;
     }

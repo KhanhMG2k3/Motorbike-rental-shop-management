@@ -1,0 +1,208 @@
+﻿@model StaffInvoiceViewModel
+@{
+    var r = Model.Rental;
+    var b = Model.Branch;
+    ViewData["Title"] = $"Hoá đơn quyết toán {r.RentalCode}";
+    var finalTotal = r.TotalAmount ?? (r.SubTotal - r.DiscountAmount + r.LateFee + r.DamageFee);
+    var netDiff = finalTotal - r.DepositAmount;
+}
+
+<!-- Thanh công cụ trên màn hình (Tự động ẩn khi bấm In) -->
+<div class="no-print">
+    <partial name="_AdminNav" />
+    <partial name="_StatusMessage" />
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <div class="d-flex gap-2">
+            <a asp-action="Details" asp-route-id="@r.RentalId" class="btn btn-outline-secondary btn-sm">← Chi tiết đơn</a>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Danh sách đơn thuê</a>
+        </div>
+        <button type="button" onclick="window.print()" class="btn btn-primary fw-bold px-4">
+            🖨️ In hoá đơn / Xuất PDF
+        </button>
+    </div>
+</div>
+
+<!-- Tờ Hoá đơn quyết toán -->
+<div class="card shadow-sm border p-4 p-md-5 bg-white mb-4">
+    <!-- Header Cửa hàng & Tiêu đề Hoá đơn -->
+    <div class="row border-bottom pb-3 mb-4 align-items-start">
+        <div class="col-7">
+            <h2 class="h4 fw-bold text-primary mb-1">MOTORENT VIETNAM</h2>
+            <div class="fw-semibold">@r.BranchName</div>
+            @if (b != null)
+            {
+                <div class="small text-muted">Địa chỉ: @b.Address</div>
+                <div class="small text-muted">Điện thoại: @b.Phone</div>
+            }
+        </div>
+        <div class="col-5 text-end">
+            <h1 class="h4 fw-bold text-uppercase mb-1">Hoá đơn quyết toán</h1>
+            <div class="small">Mã hợp đồng: <strong class="fs-6">@r.RentalCode</strong></div>
+            <div class="small text-muted">Ngày quyết toán: @DisplayHelper.DateTimeText(r.ActualReturnDate ?? DateTime.Now)</div>
+        </div>
+    </div>
+
+    <!-- Thông tin Khách hàng & Thời gian thuê -->
+    <div class="row g-3 mb-4 small">
+        <div class="col-12 col-sm-6">
+            <div class="p-3 border rounded h-100">
+                <div class="fw-bold text-uppercase text-muted mb-2">Bên thuê xe (Khách hàng)</div>
+                <div class="mb-1">Họ và tên: <strong>@r.CustomerName</strong></div>
+                <div class="mb-1">Điện thoại: <strong>@(r.CustomerPhone ?? "—")</strong></div>
+                <div class="mb-1">Email: @r.CustomerEmail</div>
+                <div class="mb-1">Số CCCD: <strong>@(r.CustomerIdentityNumber ?? "—")</strong></div>
+                <div>Số GPLX: <strong>@(r.CustomerDriverLicense ?? "—")</strong></div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6">
+            <div class="p-3 border rounded h-100">
+                <div class="fw-bold text-uppercase text-muted mb-2">Thông tin thực hiện hợp đồng</div>
+                <div class="mb-1">Chi nhánh giao/nhận: <strong>@r.BranchName</strong></div>
+                <div class="mb-1">Nhân viên phụ trách: <strong>@(r.StaffName ?? User.Identity?.Name ?? "—")</strong></div>
+                <div class="mb-1">Thời điểm nhận xe: <strong>@DisplayHelper.DateTimeText(r.StartDate)</strong></div>
+                <div class="mb-1">Thời điểm hẹn trả: <strong>@DisplayHelper.DateTimeText(r.ExpectedReturnDate)</strong></div>
+                <div>Thời điểm trả thực tế: <strong class="text-success">@DisplayHelper.DateTimeText(r.ActualReturnDate)</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng chi tiết xe thuê -->
+    <h6 class="fw-bold text-uppercase small text-muted mb-2">1. Chi tiết phương tiện & Quãng đường sử dụng</h6>
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered align-middle small mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="text-center" style="width:45px">STT</th>
+                    <th>Xe máy / Biển kiểm soát</th>
+                    <th class="text-center">Số km (Giao → Trả)</th>
+                    <th class="text-end">Đơn giá / ngày</th>
+                    <th class="text-center">Số ngày</th>
+                    <th>Tình trạng khi trả</th>
+                    <th class="text-end">Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < r.Details.Count; i++)
+                {
+                    var d = r.Details[i];
+                    var lineTotal = d.LineTotal ?? (d.PricePerDay * d.NumberOfDays);
+                    <tr>
+                        <td class="text-center">@(i + 1)</td>
+                        <td>
+                            <div class="fw-bold">@d.ModelName</div>
+                            <div class="text-muted">Biển số: @d.LicensePlate</div>
+                        </td>
+                        <td class="text-center text-nowrap">
+                            @(d.PickupOdometer?.ToString("N0") ?? "—") → @(d.ReturnOdometer?.ToString("N0") ?? "—") km
+                            @if (d.PickupOdometer.HasValue && d.ReturnOdometer.HasValue)
+                            {
+                                <div class="text-muted">(+@(d.ReturnOdometer.Value - d.PickupOdometer.Value) km)</div>
+                            }
+                        </td>
+                        <td class="text-end text-nowrap">@DisplayHelper.Money(d.PricePerDay)</td>
+                        <td class="text-center">@d.NumberOfDays</td>
+                        <td>@(string.IsNullOrWhiteSpace(d.ReturnCondition) ? "Bình thường" : d.ReturnCondition)</td>
+                        <td class="text-end fw-semibold text-nowrap">@DisplayHelper.Money(lineTotal)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Đối soát giao dịch & Tổng hợp quyết toán -->
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-md-7">
+            <h6 class="fw-bold text-uppercase small text-muted mb-2">2. Nhật ký chứng từ thanh toán</h6>
+            <table class="table table-sm table-bordered small mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nội dung</th>
+                        <th>Hình thức</th>
+                        <th>Thời gian</th>
+                        <th class="text-end">Số tiền</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in r.Payments)
+                    {
+                        <tr>
+                            <td>@DisplayHelper.PaymentTypeText(p.PaymentType)</td>
+                            <td>@DisplayHelper.PaymentMethodText(p.PaymentMethod)</td>
+                            <td class="text-nowrap">@DisplayHelper.DateTimeText(p.PaidAt)</td>
+                            <td class="text-end text-nowrap">@DisplayHelper.Money(p.Amount)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="col-12 col-md-5">
+            <h6 class="fw-bold text-uppercase small text-muted mb-2">3. Tổng hợp quyết toán</h6>
+            <div class="border rounded p-3 small">
+                <div class="d-flex justify-content-between mb-1">
+                    <span>Tiền thuê xe theo hợp đồng:</span>
+                    <span class="fw-semibold">@DisplayHelper.Money(r.SubTotal)</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span>Giảm giá / Khuyến mãi:</span>
+                    <span>-@DisplayHelper.Money(r.DiscountAmount)</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span>Phí trả xe trễ hạn:</span>
+                    <span>+@DisplayHelper.Money(r.LateFee)</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Phí bồi thường hư hỏng:</span>
+                    <span>+@DisplayHelper.Money(r.DamageFee)</span>
+                </div>
+
+                <div class="d-flex justify-content-between fw-bold fs-6 border-top pt-2 mb-2 text-primary">
+                    <span>TỔNG CHI PHÍ ĐƠN THUÊ:</span>
+                    <span>@DisplayHelper.Money(finalTotal)</span>
+                </div>
+
+                <div class="d-flex justify-content-between text-muted mb-2">
+                    <span>Tiền đặt cọc đã thu trước:</span>
+                    <span>@DisplayHelper.Money(r.DepositAmount)</span>
+                </div>
+
+                <div class="border-top pt-2 d-flex justify-content-between fw-bold">
+                    @if (netDiff < 0)
+                    {
+                        <span class="text-success">HOÀN TRẢ LẠI CHO KHÁCH:</span>
+                        <span class="text-success fs-6">@DisplayHelper.Money(Math.Abs(netDiff))</span>
+                    }
+                    else if (netDiff > 0)
+                    {
+                        <span class="text-danger">KHÁCH THANH TOÁN THÊM:</span>
+                        <span class="text-danger fs-6">@DisplayHelper.Money(netDiff)</span>
+                    }
+                    else
+                    {
+                        <span>CÒN PHẢI THANH TOÁN:</span>
+                        <span class="fs-6">0 đ (Đủ cọc)</span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chữ ký hai bên -->
+    <div class="row text-center small mt-4 pt-2">
+        <div class="col-6">
+            <div class="fw-bold text-uppercase">Khách hàng thuê xe</div>
+            <div class="text-muted fst-italic mb-5">(Ký và ghi rõ họ tên)</div>
+            <div class="fw-semibold mt-4">@r.CustomerName</div>
+        </div>
+        <div class="col-6">
+            <div class="fw-bold text-uppercase">Đại diện cửa hàng MotoRent</div>
+            <div class="text-muted fst-italic mb-5">(Ký và ghi rõ họ tên)</div>
+            <div class="fw-semibold mt-4">@(r.StaffName ?? User.Identity?.Name)</div>
+        </div>
+    </div>
+
+    <div class="text-center text-muted small border-top mt-4 pt-3">
+        Cảm ơn quý khách đã tin tưởng sử dụng dịch vụ của <strong>MotoRent</strong>! Hẹn gặp lại quý khách trong những hành trình tiếp theo.
+    </div>
+</div>

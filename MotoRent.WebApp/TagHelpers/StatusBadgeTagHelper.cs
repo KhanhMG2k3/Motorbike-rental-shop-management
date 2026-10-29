@@ -5,8 +5,7 @@ namespace MotoRent.WebApp.TagHelpers;
 
 /// <summary>
 /// Hiển thị badge trạng thái có màu + chữ tiếng Việt.
-/// Cách dùng: &lt;status-badge value="@Model.Status" kind="motorbike" /&gt;
-/// kind: motorbike | maintenance  (Dev 3 thêm "rental" trong DisplayHelper khi làm đơn thuê)
+/// Cách dùng: &lt;status-badge value="@Model.Status" kind="motorbike|maintenance|rental" /&gt;
 /// </summary>
 [HtmlTargetElement("status-badge", TagStructure = TagStructure.WithoutEndTag)]
 public class StatusBadgeTagHelper : TagHelper
@@ -20,6 +19,7 @@ public class StatusBadgeTagHelper : TagHelper
         var (text, css) = Kind switch
         {
             "maintenance" => (DisplayHelper.MaintenanceStatusText(status), DisplayHelper.MaintenanceStatusBadge(status)),
+            "rental" => (DisplayHelper.RentalStatusText(status), DisplayHelper.RentalStatusBadge(status)),
             _ => (DisplayHelper.MotorbikeStatusText(status), DisplayHelper.MotorbikeStatusBadge(status))
         };
 

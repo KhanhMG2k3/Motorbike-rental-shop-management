@@ -11,6 +11,7 @@ ASP.NET Core Web API + MVC WebApp · .NET 8 · EF Core 8 · SQL Server · OData
 | [GiaiThich_Database.md](GiaiThich_Database.md) | Giải thích từng bảng, ràng buộc                         |
 | [MotorbikeRentalDB.sql](MotorbikeRentalDB.sql) | Script tạo DB + dữ liệu mẫu                             |
 | [CLAUDE.md](CLAUDE.md)                         | Quy ước code (cho người và AI)                          |
+| [docs/HuongDan_ChayVaTest.md](docs/HuongDan_ChayVaTest.md) | **Hướng dẫn chạy và test đúng quy trình** (làm mỗi lần gộp code) |
 
 ## Cấu trúc solution
 

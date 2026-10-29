@@ -1,0 +1,111 @@
+﻿@model StaffPickupViewModel
+@{
+    var r = Model.Rental;
+    ViewData["Title"] = $"Bàn giao xe – {r.RentalCode}";
+}
+
+<partial name="_AdminNav" />
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Đơn thuê xe</a></li>
+        <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@r.RentalId">@r.RentalCode</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Biên bản bàn giao xe</li>
+    </ol>
+</nav>
+
+<partial name="_StatusMessage" />
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h1 class="h4 mb-0">🔑 Biên bản bàn giao xe cho khách</h1>
+        <small class="text-muted">Đơn thuê <strong>@r.RentalCode</strong> · Chi nhánh: <strong>@r.BranchName</strong></small>
+    </div>
+    <a asp-action="Details" asp-route-id="@r.RentalId" class="btn btn-outline-secondary btn-sm">← Quay lại chi tiết đơn</a>
+</div>
+
+<!-- Kiểm tra điều kiện giấy tờ BR4 -->
+@if (!Model.HasValidDocuments)
+{
+    <div class="alert alert-danger shadow-sm">
+        <h6 class="fw-bold mb-1">⛔ Chưa đủ điều kiện bàn giao xe (Quy tắc BR4)</h6>
+        <div class="small">
+            Khách hàng <strong>@r.CustomerName</strong> chưa cập nhật đầy đủ <strong>Số CCCD</strong> (@(r.CustomerIdentityNumber ?? "Thiếu")) hoặc <strong>Số GPLX</strong> (@(r.CustomerDriverLicense ?? "Thiếu")).
+            Vui lòng hướng dẫn khách hàng đăng nhập vào mục <em>Hồ sơ cá nhân</em> cập nhật đầy đủ trước khi bàn giao xe.
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-success py-2 small">
+        ✓ Khách hàng <strong>@r.CustomerName</strong> (@(r.CustomerPhone ?? r.CustomerEmail)) đã có đủ CCCD (<code>@r.CustomerIdentityNumber</code>) và GPLX (<code>@r.CustomerDriverLicense</code>). Vui lòng đối chiếu bản gốc và ghi nhận số công-tơ-mét bên dưới.
+    </div>
+}
+
+<form asp-action="Pickup" asp-route-id="@r.RentalId" method="post">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white fw-bold py-3">
+            Ghi nhận tình trạng & Số km lúc giao (@r.Details.Count xe)
+        </div>
+        <div class="card-body">
+            @for (int i = 0; i < r.Details.Count; i++)
+            {
+                var d = r.Details[i];
+                int currentKm = Model.CurrentOdometers.TryGetValue(d.MotorbikeId, out var km) ? km : 0;
+
+                <div class="border rounded p-3 @(i < r.Details.Count - 1 ? "mb-3" : "") bg-light bg-opacity-50">
+                    <input type="hidden" asp-for="Form.Items[i].MotorbikeId" />
+
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                        <div class="d-flex align-items-center gap-3">
+                            <img src="@(d.ImageUrl ?? Url.Content("~/images/no-image.svg"))"
+                                 onerror="this.onerror=null;this.src='@Url.Content("~/images/no-image.svg")';"
+                                 style="width:68px;height:48px;object-fit:cover;" class="rounded border bg-white" alt="@d.ModelName" />
+                            <div>
+                                <div class="fw-bold fs-6">@d.ModelName</div>
+                                <div class="small text-muted">Biển số: <strong class="text-dark">@d.LicensePlate</strong> · Đơn giá: @DisplayHelper.Money(d.PricePerDay)/ngày</div>
+                            </div>
+                        </div>
+                        <span class="badge bg-secondary">Số km hiện tại trên hệ thống: @currentKm.ToString("N0") km</span>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label asp-for="Form.Items[i].PickupOdometer" class="form-label fw-semibold small">
+                                Số km thực tế lúc giao <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input asp-for="Form.Items[i].PickupOdometer" type="number" min="@currentKm" max="1000000" class="form-control" required />
+                                <span class="input-group-text">km</span>
+                            </div>
+                            <div class="form-text">Tối thiểu @currentKm.ToString("N0") km</div>
+                            <span asp-validation-for="Form.Items[i].PickupOdometer" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-8">
+                            <label asp-for="Form.Items[i].PickupCondition" class="form-label fw-semibold small">
+                                Tình trạng ngoại quan & Phụ kiện bàn giao
+                            </label>
+                            <input asp-for="Form.Items[i].PickupCondition" class="form-control" maxlength="500"
+                                   placeholder="VD: Đủ 2 gương, 2 mũ bảo hiểm, áo mưa, vạch xăng 3/4, vết xước nhẹ dè trước..." />
+                            <span asp-validation-for="Form.Items[i].PickupCondition" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2">
+        <a asp-action="Details" asp-route-id="@r.RentalId" class="btn btn-outline-secondary">Huỷ bỏ</a>
+        <button type="submit" class="btn btn-primary px-4 fw-bold" disabled="@(!Model.HasValidDocuments)">
+            🔑 Xác nhận bàn giao xe (Chuyển sang Đang thuê)
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

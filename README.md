@@ -3,15 +3,17 @@
 ASP.NET Core Web API + MVC WebApp · .NET 8 · EF Core 8 · SQL Server · OData
 
 ## Tài liệu
-| File | Nội dung |
-|---|---|
-| [KeHoach_PhanCong.md](KeHoach_PhanCong.md) | Kế hoạch tuần 5–9, phân công 3 dev, dùng AI |
-| [LuongNghiepVu.md](LuongNghiepVu.md) | Luồng nghiệp vụ shop thuê xe, sơ đồ trạng thái, quy tắc |
-| [GiaiThich_Database.md](GiaiThich_Database.md) | Giải thích từng bảng, ràng buộc |
-| [MotorbikeRentalDB.sql](MotorbikeRentalDB.sql) | Script tạo DB + dữ liệu mẫu |
-| [CLAUDE.md](CLAUDE.md) | Quy ước code (cho người và AI) |
+
+| File                                           | Nội dung                                                |
+| ---------------------------------------------- | ------------------------------------------------------- |
+| [KeHoach_PhanCong.md](KeHoach_PhanCong.md)     | Kế hoạch tuần 5–9, phân công 3 dev, dùng AI             |
+| [LuongNghiepVu.md](LuongNghiepVu.md)           | Luồng nghiệp vụ shop thuê xe, sơ đồ trạng thái, quy tắc |
+| [GiaiThich_Database.md](GiaiThich_Database.md) | Giải thích từng bảng, ràng buộc                         |
+| [MotorbikeRentalDB.sql](MotorbikeRentalDB.sql) | Script tạo DB + dữ liệu mẫu                             |
+| [CLAUDE.md](CLAUDE.md)                         | Quy ước code (cho người và AI)                          |
 
 ## Cấu trúc solution
+
 ```
 MotoRent.sln
 ├── MotoRent.BusinessObjects   Entities (scaffold), DTOs, Constants, Exceptions, Validation
@@ -22,6 +24,7 @@ MotoRent.sln
 ```
 
 ## Cài đặt lần đầu (mỗi thành viên)
+
 1. Cài **.NET 8 SDK**, **SQL Server**, **Visual Studio 2022** (hoặc VS Code).
 2. Mở SSMS → chạy `MotorbikeRentalDB.sql` (tạo DB + dữ liệu mẫu).
 3. Tạo file `MotoRent.API/appsettings.Local.json` (file này **không** đưa lên Git) với tên SQL Server của máy bạn:
@@ -33,7 +36,7 @@ MotoRent.sln
    }
    ```
    > Dùng SQL Server mặc định (`localhost`) thì không cần tạo file này.
-4. Chạy **cả 2 project**: trong Visual Studio → chuột phải Solution → *Configure Startup Projects* → *Multiple startup projects* → chọn `MotoRent.API` và `MotoRent.WebApp` = **Start** (profile **http**).
+4. Chạy **cả 2 project**: trong Visual Studio → chuột phải Solution → _Configure Startup Projects_ → _Multiple startup projects_ → chọn `MotoRent.API` và `MotoRent.WebApp` = **Start** (profile **http**).
    Hoặc dùng terminal:
    ```bash
    dotnet run --project MotoRent.API --launch-profile http
@@ -43,48 +46,62 @@ MotoRent.sln
 Tài khoản mẫu: `admin@motorent.vn`, `staff1@motorent.vn`, `customer1@example.com` … mật khẩu `123456`.
 
 ## Scaffold lại khi đổi database
+
 ```bash
 dotnet tool restore
 dotnet ef dbcontext scaffold "Server=.\SQLEXPRESS;Database=MotorbikeRentalDB;Trusted_Connection=True;TrustServerCertificate=True" Microsoft.EntityFrameworkCore.SqlServer --project MotoRent.DataAccess --startup-project MotoRent.API --output-dir ../MotoRent.BusinessObjects/Entities --namespace MotoRent.BusinessObjects.Entities --context-dir . --context MotorbikeRentalContext --context-namespace MotoRent.DataAccess --no-onconfiguring --force
 ```
+
 > Không sửa trực tiếp file trong `Entities/` và `MotorbikeRentalContext.cs` vì scaffold lại sẽ bị ghi đè. Cần cấu hình thêm thì viết `partial class` ở file khác.
 
-## API đã có (Dev 2 – Catalog)
-| Method | Route | Mô tả |
-|---|---|---|
-| GET | `/api/brands`, `/api/brands/{id}` | Hãng xe (`?includeInactive=true` xem cả hãng đã ngừng) |
-| POST / PUT / DELETE | `/api/brands/{id}` | Thêm / sửa / ngừng hoạt động (xoá mềm) |
-| GET | `/api/categories`, `/api/categories/{id}` | Loại xe |
-| POST / PUT / DELETE | `/api/categories/{id}` | Thêm / sửa / ngừng hoạt động |
-| GET | `/api/motorbikes/{id}` | Chi tiết xe |
-| GET | `/api/motorbikes/available?startDate=&endDate=&branchId=&categoryId=&brandId=` | Xe còn trống theo thời gian |
-| POST / PUT | `/api/motorbikes/{id}` | Thêm / sửa xe |
-| PATCH | `/api/motorbikes/{id}/status` | Đổi trạng thái (Available / Maintenance / Inactive) |
-| DELETE | `/api/motorbikes/{id}` | Ngừng cho thuê (xoá mềm) |
-| GET | `/odata/Motorbikes` | **OData** tìm kiếm xe: `$filter`, `$orderby`, `$select`, `$top`, `$skip`, `$count` |
-| GET | `/odata/Rentals` | **OData** tra cứu đơn thuê (Admin/Staff) |
-| POST | `/api/motorbikes/{id}/image` | Upload ảnh xe (multipart, field `file`, .jpg/.png/.webp ≤ 2 MB) |
-| GET | `/api/maintenances?motorbikeId=&branchId=&status=` | Danh sách phiếu bảo dưỡng |
-| GET / POST / PUT | `/api/maintenances/{id}` | Xem / lên lịch / sửa phiếu |
-| PUT | `/api/maintenances/{id}/start` | Bắt đầu: phiếu → InProgress, xe → Maintenance |
-| PUT | `/api/maintenances/{id}/complete` | Hoàn thành: ghi chi phí thực tế, xe → Available |
-| PUT | `/api/maintenances/{id}/cancel` | Huỷ phiếu |
-| GET | `/api/lookups/branches` | Chi nhánh cho dropdown (chỉ đọc) |
-| POST | `/api/auth/login`, `/api/auth/register` | Đăng nhập lấy JWT Token / Đăng ký Customer |
-| GET / PUT | `/api/auth/me` | Xem / Cập nhật hồ sơ cá nhân (Bearer Token) |
-| PUT | `/api/auth/change-password` | Đổi mật khẩu cá nhân |
-| GET / POST / PUT / DELETE | `/api/branches/{id?}` | Quản lý Chi nhánh (Admin) |
-| GET / POST | `/api/users`, `/api/users/staff` | Danh sách tài khoản / Tạo nhân viên mới (Admin) |
-| PATCH | `/api/users/{id}/status` | Khoá / Mở khoá tài khoản (Admin) |
-| GET | `/api/dashboard/summary` | Thống kê KPI tổng quan (Admin) |
-| GET | `/api/dashboard/monthly-revenue` | Thống kê doanh thu 12 tháng theo năm (Admin) |
-| GET | `/api/dashboard/top-motorbikes` | Bảng xếp hạng top xe doanh thu cao nhất (Admin) |
+## API đã có (Catalog, Auth, Rentals, Reviews…)
 
-Ví dụ: xem file [MotoRent.API/MotoRent.API.http](MotoRent.API/MotoRent.API.http) (bấm *Send Request* ngay trong Visual Studio / VS Code).
+| Method                    | Route                                                                          | Mô tả                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| GET                       | `/api/brands`, `/api/brands/{id}`                                              | Hãng xe (`?includeInactive=true` xem cả hãng đã ngừng)                             |
+| POST / PUT / DELETE       | `/api/brands/{id}`                                                             | Thêm / sửa / ngừng hoạt động (xoá mềm)                                             |
+| GET                       | `/api/categories`, `/api/categories/{id}`                                      | Loại xe                                                                            |
+| POST / PUT / DELETE       | `/api/categories/{id}`                                                         | Thêm / sửa / ngừng hoạt động                                                       |
+| GET                       | `/api/motorbikes/{id}`                                                         | Chi tiết xe                                                                        |
+| GET                       | `/api/motorbikes/available?startDate=&endDate=&branchId=&categoryId=&brandId=` | Xe còn trống theo thời gian                                                        |
+| POST / PUT                | `/api/motorbikes/{id}`                                                         | Thêm / sửa xe                                                                      |
+| PATCH                     | `/api/motorbikes/{id}/status`                                                  | Đổi trạng thái (Available / Maintenance / Inactive)                                |
+| DELETE                    | `/api/motorbikes/{id}`                                                         | Ngừng cho thuê (xoá mềm)                                                           |
+| GET                       | `/odata/Motorbikes`                                                            | **OData** tìm kiếm xe: `$filter`, `$orderby`, `$select`, `$top`, `$skip`, `$count` |
+| GET                       | `/odata/Rentals`                                                               | **OData** tra cứu đơn thuê (Admin/Staff)                                           |
+| POST                      | `/api/motorbikes/{id}/image`                                                   | Upload ảnh xe (multipart, field `file`, .jpg/.png/.webp ≤ 2 MB)                    |
+| GET                       | `/api/maintenances?motorbikeId=&branchId=&status=`                             | Danh sách phiếu bảo dưỡng                                                          |
+| GET / POST / PUT          | `/api/maintenances/{id}`                                                       | Xem / lên lịch / sửa phiếu                                                         |
+| PUT                       | `/api/maintenances/{id}/start`                                                 | Bắt đầu: phiếu → InProgress, xe → Maintenance                                      |
+| PUT                       | `/api/maintenances/{id}/complete`                                              | Hoàn thành: ghi chi phí thực tế, xe → Available                                    |
+| PUT                       | `/api/maintenances/{id}/cancel`                                                | Huỷ phiếu                                                                          |
+| GET                       | `/api/lookups/branches`                                                        | Chi nhánh cho dropdown (chỉ đọc)                                                   |
+| POST                      | `/api/auth/login`, `/api/auth/register`                                        | Đăng nhập lấy JWT Token / Đăng ký Customer                                         |
+| GET / PUT                 | `/api/auth/me`                                                                 | Xem / Cập nhật hồ sơ cá nhân (Bearer Token)                                        |
+| PUT                       | `/api/auth/change-password`                                                    | Đổi mật khẩu cá nhân                                                               |
+| GET / POST / PUT / DELETE | `/api/branches/{id?}`                                                          | Quản lý Chi nhánh (Admin)                                                          |
+| GET / POST                | `/api/users`, `/api/users/staff`                                               | Danh sách tài khoản / Tạo nhân viên mới (Admin)                                    |
+| PATCH                     | `/api/users/{id}/status`                                                       | Khoá / Mở khoá tài khoản (Admin)                                                   |
+| GET                       | `/api/dashboard/summary`                                                       | Thống kê KPI tổng quan (Admin)                                                     |
+| GET                       | `/api/dashboard/monthly-revenue`                                               | Thống kê doanh thu 12 tháng theo năm (Admin)                                       |
+| GET                       | `/api/dashboard/top-motorbikes`                                                | Bảng xếp hạng top xe doanh thu cao nhất (Admin)                                    |
+| POST                      | `/api/rentals`                                                                 | Tạo đơn thuê (Customer tự đặt; Staff đặt hộ phải gửi `customerId`)                 |
+| GET                       | `/api/rentals/my`                                                              | Đơn thuê của tôi (Customer)                                                        |
+| GET                       | `/api/rentals/{id}`                                                            | Chi tiết đơn (Customer chỉ xem đơn của mình; Staff/Admin xem tất cả)               |
+| PUT                       | `/api/rentals/{id}/confirm`                                                    | Staff duyệt đơn + ghi tiền cọc → Confirmed                                         |
+| PUT                       | `/api/rentals/{id}/pickup`                                                     | Staff giao xe (cần CCCD + GPLX của khách) → Renting, xe → Rented                   |
+| PUT                       | `/api/rentals/{id}/return`                                                     | Staff nhận xe, tính phí trễ / hư hỏng, hoàn cọc → Completed, xe → Available        |
+| PUT                       | `/api/rentals/{id}/cancel`                                                     | Huỷ đơn khi còn Pending / Confirmed (kèm lý do, hoàn cọc)                          |
+| GET                       | `/api/motorbikes/{id}/reviews`                                                 | Đánh giá của một xe (công khai)                                                    |
+| GET                       | `/api/reviews/rental/{rentalId}`, `/api/reviews/check-eligibility`             | Đánh giá của đơn / kiểm tra được phép đánh giá                                     |
+| POST                      | `/api/reviews`                                                                 | Gửi đánh giá 1–5 sao (đơn Completed của chính mình)                                |
+
+Ví dụ: xem file [MotoRent.API/MotoRent.API.http](MotoRent.API/MotoRent.API.http) (bấm _Send Request_ ngay trong Visual Studio / VS Code).
 
 Ảnh upload lưu ở `MotoRent.API/wwwroot/uploads/` (không đưa lên Git).
 
 ## Test API (Postman & Newman)
+
 - **Dev 1 (Auth, Branches, Users, Dashboard, Phân quyền)**:
   - Collection: [docs/postman/MotoRent_Dev1.postman_collection.json](docs/postman/MotoRent_Dev1.postman_collection.json)
   - Bảng test case: [docs/TestCases_Dev1.md](docs/TestCases_Dev1.md)
@@ -95,14 +112,20 @@ Ví dụ: xem file [MotoRent.API/MotoRent.API.http](MotoRent.API/MotoRent.API.ht
   - Chạy lệnh: `npx newman run docs/postman/MotoRent_Dev2.postman_collection.json`
 
 ## WebApp đã có
+
 **Khách hàng & Xác thực**
+
 - `/Auth/Login`, `/Auth/Register` – Đăng nhập, đăng ký tài khoản (lưu Cookie Auth và chuyển tiếp JWT).
 - `/Auth/Profile`, `/Auth/ChangePassword` – Xem/cập nhật hồ sơ cá nhân, đổi mật khẩu.
 - `/Motorbikes` – danh sách xe: lọc theo từ khoá, hãng, loại, khoảng giá, chỉ xe sẵn sàng; sắp xếp; phân trang (gọi OData).
-- `/Motorbikes/Details/{id}` – chi tiết xe, kiểm tra lịch trống + tạm tính tiền, xe cùng loại.
+- `/Motorbikes/Details/{id}` – chi tiết xe, kiểm tra lịch trống + tạm tính tiền, xe cùng loại, đánh giá của xe.
+- `/Rentals/Create?motorbikeId=` – đặt đơn thuê (Customer).
+- `/Rentals/MyRentals`, `/Rentals/Details/{id}` – đơn thuê của tôi, chi tiết đơn, huỷ đơn, gửi đánh giá (Customer).
 
-**Quản trị** (`/Admin`, menu *Quản trị* trên thanh điều hướng – Area `Admin`)
+**Quản trị** (`/Admin`, menu _Quản trị_ trên thanh điều hướng – Area `Admin`)
+
 - `/Admin/Dashboard` – Thống kê KPI, biểu đồ doanh thu 12 tháng (Chart.js), top xe mang lại doanh thu cao.
+- `/Admin/Rentals` – (Admin xem; Staff xử lý) danh sách đơn, chi tiết, duyệt, giao xe (`Pickup`), nhận xe (`Return`), hoá đơn quyết toán (`Invoice`).
 - `/Admin/Branches` – danh sách chi nhánh, thêm / sửa / ngừng hoạt động.
 - `/Admin/Users` – danh sách người dùng, lọc theo vai trò/chi nhánh, tạo nhân viên Staff, khoá/mở tài khoản.
 - `/Admin/Motorbikes` – danh sách xe (gồm cả xe ngừng), lọc, thêm / sửa / ngừng / mở lại, upload ảnh, đổi trạng thái, xem lịch sử bảo dưỡng.
@@ -112,6 +135,7 @@ Ví dụ: xem file [MotoRent.API/MotoRent.API.http](MotoRent.API/MotoRent.API.ht
 **Dùng chung:** Cookie Authentication, BearerTokenHandler tự động gắn token JWT, Partial `_MotorbikeCard`, `_Pagination`, `_StatusMessage`, `_AdminNav`, form partial (`_MotorbikeForm`, `_BrandForm`, `_BranchForm`, …); TagHelper `<status-badge value="..." kind="motorbike|maintenance" />`. Phân quyền chặt chẽ với `[Authorize(Roles = ...)]`.
 
 ## Quy trình Git
+
 ```
 main  ← bản ổn định (merge từ develop cuối tuần)
  └── develop  ← nhánh chung

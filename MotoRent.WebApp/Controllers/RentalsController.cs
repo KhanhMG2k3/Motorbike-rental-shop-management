@@ -186,13 +186,17 @@ public class RentalsController : Controller
             (string.IsNullOrWhiteSpace(profileRes.Data.IdentityNumber) ||
              string.IsNullOrWhiteSpace(profileRes.Data.DriverLicenseNumber));
 
+        var branch = await _motorbikeApi.GetBranchAsync(primaryBike.BranchId);
+
         return new CustomerCreateRentalViewModel
         {
             PrimaryMotorbikeId = primaryBike.MotorbikeId,
             SelectedMotorbike = primaryBike,
             BranchMotorbikes = branchBikes,
             Form = form,
-            MissingDrivingDocs = missingDocs
+            MissingDrivingDocs = missingDocs,
+            BranchOpenTime = branch?.OpenTime,
+            BranchCloseTime = branch?.CloseTime
         };
     }
 

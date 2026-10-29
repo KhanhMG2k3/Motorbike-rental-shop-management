@@ -93,8 +93,12 @@ dotnet ef dbcontext scaffold "Server=.\SQLEXPRESS;Database=MotorbikeRentalDB;Tru
 | PUT                       | `/api/rentals/{id}/return`                                                     | Staff nhận xe, tính phí trễ / hư hỏng, hoàn cọc → Completed, xe → Available        |
 | PUT                       | `/api/rentals/{id}/cancel`                                                     | Huỷ đơn khi còn Pending / Confirmed (kèm lý do, hoàn cọc)                          |
 | GET                       | `/api/motorbikes/{id}/reviews`                                                 | Đánh giá của một xe (công khai)                                                    |
-| GET                       | `/api/reviews/rental/{rentalId}`, `/api/reviews/check-eligibility`             | Đánh giá của đơn / kiểm tra được phép đánh giá                                     |
-| POST                      | `/api/reviews`                                                                 | Gửi đánh giá 1–5 sao (đơn Completed của chính mình)                                |
+| GET                       | `/api/reviews/rental/{rentalId}`, `/api/reviews/check-eligibility`             | Đánh giá của đơn / kiểm tra được phép đánh giá (cần đăng nhập)                     |
+| POST                      | `/api/reviews`                                                                 | Gửi đánh giá 1–5 sao (đơn Completed của chính mình, chỉ Customer)                  |
+| GET                       | `/api/payments?rentalId=&type=&method=&status=&from=&to=&page=&pageSize=`      | Tra cứu thanh toán + tổng đã thu / đã hoàn / doanh thu (Admin, Staff)              |
+| GET                       | `/api/payments/my`                                                             | Lịch sử thanh toán của tôi (Customer)                                              |
+| PUT                       | `/api/payments/{id}/confirm`                                                   | Xác nhận khoản đang chờ đã thu tiền: Pending → Paid (Admin, Staff)                 |
+| PUT                       | `/api/payments/{id}/cancel`                                                    | Huỷ khoản đang chờ, bắt buộc có lý do: Pending → Cancelled (Admin, Staff)          |
 
 Ví dụ: xem file [MotoRent.API/MotoRent.API.http](MotoRent.API/MotoRent.API.http) (bấm _Send Request_ ngay trong Visual Studio / VS Code).
 
@@ -110,6 +114,9 @@ Ví dụ: xem file [MotoRent.API/MotoRent.API.http](MotoRent.API/MotoRent.API.ht
   - Collection: [docs/postman/MotoRent_Dev2.postman_collection.json](docs/postman/MotoRent_Dev2.postman_collection.json) – 75 request, 116 assertion (tự đăng nhập Admin/Staff/Customer, có test phân quyền 401/403).
   - Bảng test case: [docs/TestCases_Dev2.md](docs/TestCases_Dev2.md)
   - Chạy lệnh: `npx newman run docs/postman/MotoRent_Dev2.postman_collection.json`
+- **Luồng thuê xe + thanh toán + phân quyền (Dev 3, Dev 1)**: kịch bản end-to-end [docs/e2e/rental-flow.e2e.js](docs/e2e/rental-flow.e2e.js) – 73 kiểm tra: đặt xe, giờ mở cửa chi nhánh (BR12), duyệt → giao → trả xe, phí trễ, đánh giá, huỷ đơn, phân quyền 401/403, thanh toán.
+  - Chạy (API đang chạy, nên chạy lại `MotorbikeRentalDB.sql` để có dữ liệu sạch): `node docs/e2e/rental-flow.e2e.js`
+  - Bảng test case: [docs/TestCases_Rentals_Payments.md](docs/TestCases_Rentals_Payments.md)
 
 ## WebApp đã có
 
@@ -121,11 +128,13 @@ Ví dụ: xem file [MotoRent.API/MotoRent.API.http](MotoRent.API/MotoRent.API.ht
 - `/Motorbikes/Details/{id}` – chi tiết xe, kiểm tra lịch trống + tạm tính tiền, xe cùng loại, đánh giá của xe.
 - `/Rentals/Create?motorbikeId=` – đặt đơn thuê (Customer).
 - `/Rentals/MyRentals`, `/Rentals/Details/{id}` – đơn thuê của tôi, chi tiết đơn, huỷ đơn, gửi đánh giá (Customer).
+- `/Payments/My` – lịch sử thanh toán của tôi: tổng đã trả, đã hoàn, khoản đang chờ (Customer).
 
 **Quản trị** (`/Admin`, menu _Quản trị_ trên thanh điều hướng – Area `Admin`)
 
 - `/Admin/Dashboard` – Thống kê KPI, biểu đồ doanh thu 12 tháng (Chart.js), top xe mang lại doanh thu cao.
 - `/Admin/Rentals` – (Admin xem; Staff xử lý) danh sách đơn, chi tiết, duyệt, giao xe (`Pickup`), nhận xe (`Return`), hoá đơn quyết toán (`Invoice`).
+- `/Admin/Payments` – (Admin, Staff) tra cứu thanh toán có lọc + tổng tiền; xác nhận / huỷ khoản đang chờ.
 - `/Admin/Branches` – danh sách chi nhánh, thêm / sửa / ngừng hoạt động.
 - `/Admin/Users` – danh sách người dùng, lọc theo vai trò/chi nhánh, tạo nhân viên Staff, khoá/mở tài khoản.
 - `/Admin/Motorbikes` – danh sách xe (gồm cả xe ngừng), lọc, thêm / sửa / ngừng / mở lại, upload ảnh, đổi trạng thái, xem lịch sử bảo dưỡng.

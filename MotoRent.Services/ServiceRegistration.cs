@@ -28,6 +28,7 @@ public static class ServiceRegistration
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IPaymentService, PaymentService>();
 
         // Services - Dev 3 (Rentals, Reviews): thêm ở đây
         services.AddScoped<IRentalService, RentalService>();

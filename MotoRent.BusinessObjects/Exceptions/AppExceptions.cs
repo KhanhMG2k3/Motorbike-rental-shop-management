@@ -17,3 +17,9 @@ public class ConflictException : Exception
 {
     public ConflictException(string message) : base(message) { }
 }
+
+/// <summary>Đã đăng nhập nhưng không có quyền với dữ liệu này (VD: khách xem đơn của người khác) → HTTP 403.</summary>
+public class ForbiddenException : Exception
+{
+    public ForbiddenException(string message) : base(message) { }
+}

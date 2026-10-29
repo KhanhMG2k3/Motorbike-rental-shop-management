@@ -42,6 +42,7 @@
                                         <li><hr class="dropdown-divider"></li>
                                     }
                                     <li><a class="dropdown-item fw-semibold" asp-area="Admin" asp-controller="Rentals" asp-action="Index">Đơn thuê xe</a></li>
+                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Payments" asp-action="Index">Thanh toán</a></li>
                                     <li><a class="dropdown-item" asp-area="Admin" asp-controller="Maintenances" asp-action="Index">Bảo dưỡng</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" asp-area="Admin" asp-controller="Motorbikes" asp-action="Index">Xe máy</a></li>
@@ -70,6 +71,7 @@
                                     @if (User.IsInRole(AppRoles.Customer))
                                     {
                                         <li><a class="dropdown-item" asp-area="" asp-controller="Rentals" asp-action="MyRentals">Đơn thuê của tôi</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Payments" asp-action="My">Lịch sử thanh toán</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                     }
                                     <li><a class="dropdown-item" asp-area="" asp-controller="Auth" asp-action="Profile">Hồ sơ cá nhân</a></li>

@@ -149,7 +149,7 @@ Nguyên tắc: **mỗi người sở hữu module từ đầu đến cuối (API
 | 8 | 26/10 – 01/11 | Test, sửa lỗi, **code freeze** cuối tuần |
 | 9 | 02/11 – 08/11 | Báo cáo, slide, demo |
 
-### ✅ Tiến độ thực tế (cập nhật 18/10)
+### ✅ Tiến độ thực tế (cập nhật 29/10)
 | Việc | Người làm | Trạng thái |
 |---|---|---|
 | Khung solution 5 project, scaffold DbContext, Swagger, `ApiResponse`, `ExceptionMiddleware`, `CLAUDE.md`, README | Đạt (Dev 2) làm thay Dev 1 | ✅ Xong – nhánh `develop` |
@@ -166,8 +166,13 @@ Nguyên tắc: **mỗi người sở hữu module từ đầu đến cuối (API
 | **Dev 1:** Dashboard thống kê KPI & doanh thu Chart.js API + Admin WebApp | Dev 1 | ✅ Xong – nhánh `feature/dev1` |
 | **Dev 1:** Postman collection 34 request / 68 assertion + bảng test case `docs/TestCases_Dev1.md` | Dev 1 | ✅ Xong – nhánh `feature/dev1` |
 | **Dev 1:** Gắn `[Authorize]` trên toàn bộ API và Admin WebApp | Dev 1 | ✅ Xong – nhánh `feature/dev1` |
-| **Dev 1:** Payments API + UI | Dev 1 | ⏳ Chưa làm (để lại xử lý sau) |
-| Rentals API + UI | Dev 3 | ⏳ Chưa làm |
+| **Dev 3:** Rentals API (tạo / duyệt / giao / trả / huỷ, phí trễ) + Reviews API | Dev 3 | ✅ Xong – nhánh `feature/rentals` |
+| **Dev 3:** WebApp đặt xe, "Đơn thuê của tôi", quản lý đơn cho Staff (giao / trả / hoá đơn), gửi đánh giá | Dev 3 | ✅ Xong – nhánh `feature/rentals` |
+| **Dev 1:** Payments API + UI (tra cứu, lọc, tổng đã thu / hoàn / doanh thu, xác nhận / huỷ khoản chờ, lịch sử của khách) | Gộp bởi Đạt | ✅ Xong (29/10) – nhánh `feature/hoan-thien-payments-br12` |
+| **Dev 3:** Quy tắc giờ mở cửa chi nhánh (BR12) khi đặt xe + gợi ý trên form | Gộp bởi Đạt | ✅ Xong (29/10) |
+| Sửa bảo mật `ReviewsController` (bắt buộc đăng nhập, bỏ "tạm coi là user 1"), mã **403** khi truy cập đơn của người khác | Gộp bởi Đạt | ✅ Xong (29/10) |
+| Kịch bản kiểm thử end-to-end 73 kiểm tra `docs/e2e/rental-flow.e2e.js` + bảng test case `docs/TestCases_Rentals_Payments.md` | Gộp bởi Đạt | ✅ Xong (29/10) |
+| **Việc còn mở:** Refresh token (tuỳ chọn, chưa làm) · Admin có được giao / trả xe không (hiện chỉ Staff) · báo cáo + slide + demo (tuần 9) | Cả nhóm | ⏳ |
 
 ### Tuần 5 – Nền móng + Auth + CRUD *(gánh thêm phần tuần 4)*
 | Ai | Ngày 1–2 (T2–T3) | Ngày 3–7 |

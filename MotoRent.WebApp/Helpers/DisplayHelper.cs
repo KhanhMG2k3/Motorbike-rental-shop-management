@@ -9,6 +9,23 @@ public static class DisplayHelper
 
     public static string Money(decimal amount) => amount.ToString("N0", Vi) + " đ";
 
+    public static string PaymentStatusText(string status) => status switch
+    {
+        PaymentStatus.Pending => "Chờ xác nhận",
+        PaymentStatus.Paid => "Đã thanh toán",
+        PaymentStatus.Failed => "Thất bại",
+        PaymentStatus.Cancelled => "Đã huỷ",
+        _ => status
+    };
+
+    public static string PaymentStatusBadge(string status) => status switch
+    {
+        PaymentStatus.Pending => "bg-warning text-dark",
+        PaymentStatus.Paid => "bg-success",
+        PaymentStatus.Failed => "bg-danger",
+        _ => "bg-secondary"
+    };
+
     public static string MotorbikeStatusText(string status) => status switch
     {
         MotorbikeStatus.Available => "Sẵn sàng",

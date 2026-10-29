@@ -3,6 +3,7 @@ using MotoRent.BusinessObjects.Constants;
 using MotoRent.BusinessObjects.DTOs.Rentals;
 using MotoRent.BusinessObjects.Entities;
 using MotoRent.BusinessObjects.Exceptions;
+using MotoRent.BusinessObjects.Helpers;
 using MotoRent.DataAccess;
 using MotoRent.DataAccess.Repositories;
 using MotoRent.Services.Interfaces;
@@ -42,7 +43,7 @@ public class RentalService : IRentalService
         // Customer chỉ được xem đơn của chính mình
         if (currentRole == AppRoles.Customer && currentUserId.HasValue && rental.CustomerId != currentUserId.Value)
         {
-            throw new BusinessException("Bạn không có quyền truy cập vào thông tin đơn thuê này.");
+            throw new ForbiddenException("Bạn không có quyền truy cập vào thông tin đơn thuê này.");
         }
 
         return rental;
@@ -109,6 +110,14 @@ public class RentalService : IRentalService
         var branch = await _branchRepo.Query()
             .FirstOrDefaultAsync(b => b.BranchId == dto.BranchId && b.IsActive)
             ?? throw new NotFoundException("Chi nhánh không tồn tại hoặc đã dừng hoạt động.");
+
+        // 3b. BR12: giờ nhận xe và giờ hẹn trả phải nằm trong giờ mở cửa của chi nhánh
+        var hoursError = BranchHours.Validate(branch.BranchName, branch.OpenTime, branch.CloseTime, dto.StartDate, "Giờ nhận xe")
+                         ?? BranchHours.Validate(branch.BranchName, branch.OpenTime, branch.CloseTime, dto.ExpectedReturnDate, "Giờ hẹn trả xe");
+        if (hoursError != null)
+        {
+            throw new BusinessException(hoursError);
+        }
 
         // 4. Tính số ngày thuê (làm tròn lên, tối thiểu 1 ngày)
         int numberOfDays = (int)Math.Ceiling((dto.ExpectedReturnDate - dto.StartDate).TotalDays);
@@ -451,7 +460,7 @@ public class RentalService : IRentalService
         // Customer chỉ huỷ đơn của chính mình
         if (userRole == AppRoles.Customer && rental.CustomerId != requestUserId)
         {
-            throw new BusinessException("Bạn chỉ được phép huỷ đơn thuê do chính mình tạo.");
+            throw new ForbiddenException("Bạn chỉ được phép huỷ đơn thuê do chính mình tạo.");
         }
 
         // Chỉ cho phép huỷ khi Pending hoặc Confirmed

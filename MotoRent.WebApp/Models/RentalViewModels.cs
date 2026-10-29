@@ -12,6 +12,10 @@ public class CustomerCreateRentalViewModel
     public List<MotorbikeDto> BranchMotorbikes { get; set; } = new();
     public CreateRentalDto Form { get; set; } = new();
     public bool MissingDrivingDocs { get; set; }
+
+    /// <summary>Giờ mở cửa của chi nhánh (quy tắc BR12). Null nếu không lấy được → chỉ ẩn dòng gợi ý.</summary>
+    public TimeOnly? BranchOpenTime { get; set; }
+    public TimeOnly? BranchCloseTime { get; set; }
 }
 
 /// <summary>ViewModel trang Đơn thuê của tôi (My Rentals).</summary>

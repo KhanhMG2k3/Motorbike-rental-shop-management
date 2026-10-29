@@ -39,6 +39,13 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Chi nhánh nhận & trả xe</label>
                         <input type="text" class="form-control bg-light" value="📍 @primary.BranchName" readonly />
+                        @if (Model.BranchOpenTime.HasValue && Model.BranchCloseTime.HasValue)
+                        {
+                            <div class="form-text">
+                                🕒 Giờ mở cửa: <strong>@Model.BranchOpenTime.Value.ToString("HH:mm") – @Model.BranchCloseTime.Value.ToString("HH:mm")</strong>.
+                                Giờ nhận xe và giờ hẹn trả phải nằm trong khung giờ này.
+                            </div>
+                        }
                     </div>
 
                     <div class="row g-3 mb-3">

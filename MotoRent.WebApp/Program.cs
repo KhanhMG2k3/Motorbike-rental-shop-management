@@ -40,7 +40,7 @@ builder.Services.AddHttpClient<AuthApiClient>(ConfigureApiClient)
     .AddHttpMessageHandler<BearerTokenHandler>();
 builder.Services.AddHttpClient<DashboardApiClient>(ConfigureApiClient)
     .AddHttpMessageHandler<BearerTokenHandler>();
-builder.Services.AddHttpClient<DashboardApiClient>(ConfigureApiClient)
+builder.Services.AddHttpClient<PaymentApiClient>(ConfigureApiClient)
     .AddHttpMessageHandler<BearerTokenHandler>();
 builder.Services.AddHttpClient<RentalApiClient>(ConfigureApiClient)
     .AddHttpMessageHandler<BearerTokenHandler>();

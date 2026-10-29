@@ -9,4 +9,8 @@ public class BranchLookupDto
     public int BranchId { get; set; }
     public string BranchName { get; set; } = null!;
     public string Address { get; set; } = null!;
+
+    /// <summary>Giờ mở cửa / đóng cửa — dùng cho quy tắc BR12 (giờ nhận, trả xe phải nằm trong khung này).</summary>
+    public TimeOnly OpenTime { get; set; }
+    public TimeOnly CloseTime { get; set; }
 }

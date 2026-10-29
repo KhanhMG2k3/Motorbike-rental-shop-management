@@ -146,21 +146,87 @@ stateDiagram-v2
 
 ---
 
-## 6. Quy tắc nghiệp vụ (Business rules)
+## 6. Quy tắc nghiệp vụ & validate dữ liệu
 
-| # | Quy tắc | Kiểm tra ở |
-|---|---|---|
-| BR1 | Ngày trả phải sau ngày nhận, thuê tối đa 90 ngày | DB (CHECK) + DTO |
-| BR2 | Xe không được trùng lịch với đơn Pending / Confirmed / Renting khác | Service |
-| BR3 | Chỉ thuê được xe trạng thái **Available** | Service |
-| BR4 | Giao xe phải có CCCD + GPLX | Service |
-| BR5 | Khách phải đủ 18 tuổi | DB (CHECK) + DTO |
-| BR6 | Giá thuê lưu lại tại thời điểm đặt, đổi giá xe sau không ảnh hưởng đơn cũ | `RentalDetails.PricePerDay` |
-| BR7 | Chỉ chuyển trạng thái đúng theo sơ đồ 5.1 (VD: không thể trả xe khi đơn đang Pending) | Service |
-| BR8 | Customer chỉ xem / huỷ / đánh giá đơn **của mình** | Service (so `CustomerId` với user trong JWT) |
-| BR9 | Đánh giá chỉ khi đơn Completed, mỗi xe 1 lần / đơn | Service + DB (UNIQUE) |
-| BR10 | Giảm giá không vượt quá tiền thuê | DB (CHECK) |
-| BR11 | Email, biển số, CCCD, SĐT không trùng | DB (UNIQUE) |
+> Cột **Kiểm tra ở**: **DB** = ràng buộc trong SQL (CHECK/UNIQUE/FK) · **DTO** = DataAnnotations, trả 400 kèm lỗi từng ô · **Service** = truy vấn DB rồi mới biết đúng/sai (400/404/409).
+> Validate ở **nhiều lớp**: DB là lớp bảo vệ cuối, DTO báo lỗi thân thiện, Service kiểm tra nghiệp vụ.
+> Trạng thái cột **Code**: ✅ đã có trong code · ⏳ chưa làm (ghi người phụ trách).
+
+### 6.1 Đơn thuê (Rentals – Dev 3)
+| # | Quy tắc | Kiểm tra ở | Code |
+|---|---|---|---|
+| BR1 | Ngày trả phải sau ngày nhận, thuê tối đa 90 ngày | DB (CHECK) + DTO | ⏳ Dev 3 (tìm xe trống đã có: ✅) |
+| BR2 | Xe không được trùng lịch với đơn Pending / Confirmed / Renting khác | Service – dùng `IMotorbikeRepository.IsAvailableAsync` | ✅ hàm kiểm tra / ⏳ gọi khi tạo đơn |
+| BR3 | Chỉ thuê được xe **không ở trạng thái Maintenance / Inactive**. Xe đang **Rented** vẫn đặt được cho khoảng thời gian *sau* khi trả (nhờ kiểm tra trùng lịch BR2) | Service | ✅ |
+| BR4 | Giao xe phải có CCCD + GPLX | Service | ⏳ Dev 3 |
+| BR5 | Khách phải đủ 18 tuổi | DB (CHECK) + DTO | ✅ (DB) |
+| BR6 | Giá thuê lưu lại tại thời điểm đặt, đổi giá xe sau không ảnh hưởng đơn cũ | `RentalDetails.PricePerDay` | ⏳ Dev 3 |
+| BR7 | Chỉ chuyển trạng thái đúng theo sơ đồ 5.1 (VD: không trả xe khi đơn đang Pending) | Service | ⏳ Dev 3 |
+| BR8 | Customer chỉ xem / huỷ / đánh giá đơn **của mình** | Service (so `CustomerId` với user trong JWT, dùng `User.GetUserId()`) | ⏳ Dev 3 |
+| BR9 | Đánh giá chỉ khi đơn Completed, mỗi xe 1 lần / đơn | Service + DB (UNIQUE) | ⏳ Dev 3 |
+| BR10 | Giảm giá không vượt quá tiền thuê | DB (CHECK) | ✅ (DB) |
+| BR11 | Email, biển số, CCCD, SĐT không trùng | DB (UNIQUE) | ✅ |
+| **BR12** | **Giờ nhận xe và giờ hẹn trả phải nằm trong giờ mở cửa của chi nhánh** (xem 6.2) | Service (+ DTO nếu muốn báo lỗi sớm) | ⏳ **đề xuất – cần nhóm chốt** |
+
+### 6.2 Giờ thuê xe (BR12 – đề xuất)
+Database đã có sẵn giờ mở cửa **theo từng chi nhánh** (`Branches.OpenTime`, `Branches.CloseTime`; mặc định 07:00–21:00, chi nhánh Thủ Đức 07:30–20:30) và Admin sửa được ở trang *Quản lý chi nhánh*. Nhưng **chưa có quy tắc nào dùng đến chúng khi tạo đơn**.
+
+Đề xuất áp dụng:
+- **Giờ nhận xe** (`StartDate`) và **giờ hẹn trả** (`ExpectedReturnDate`) phải nằm trong `[OpenTime, CloseTime]` của chi nhánh của đơn (`Rentals.BranchId`). Ngoài khung giờ → 400 *"Chi nhánh X mở cửa từ 07:00 đến 21:00, vui lòng chọn giờ trong khung này"*.
+- **Không** hard-code "7h–24h" trong code: lấy từ bảng `Branches` để mỗi chi nhánh có giờ riêng. Muốn mở tới nửa đêm thì Admin đổi `CloseTime` = 23:59 (DB có CHECK `CloseTime > OpenTime` nên không dùng được 00:00).
+- **Giờ trả thực tế** (`ActualReturnDate`) *không* chặn: khách có thể trả muộn hơn giờ đóng cửa, Staff vẫn nhập được; phí trễ tính như bình thường.
+- Dữ liệu mẫu hiện tại đều nằm trong giờ mở cửa (08:00, 09:00, 10:00, 07:00) nên **không cần sửa file SQL**.
+
+Vì sao không đặt trong database:
+- Một ràng buộc `CHECK` của SQL Server **không đọc được bảng khác**, mà giờ mở cửa nằm ở bảng `Branches` còn giờ thuê nằm ở `Rentals`.
+- Muốn bắt ở DB phải dùng trigger hoặc hàm tự viết — dễ lỗi với EF Core, khó test. Làm ở **Service** (và hiển thị khung giờ cho khách trên form) đơn giản và rõ hơn.
+
+Ai làm: logic nằm trong `RentalService.CreateAsync` / sửa đơn (Dev 3). Nên viết thành **một hàm dùng chung**, VD `BranchHours.IsWithin(branch, DateTime)`, để WebApp cũng dùng được khi giới hạn ô chọn giờ.
+
+### 6.3 Danh mục xe: Hãng, Loại, Xe máy (Dev 2)
+| # | Quy tắc | Kiểm tra ở | Code |
+|---|---|---|---|
+| BR20 | Tên hãng / loại xe: bắt buộc, 2–50 ký tự, **không trùng** (409) | DTO + Service + DB (UNIQUE) | ✅ |
+| BR21 | **Không ngừng** hãng / loại còn xe đang hoạt động (xe chưa Inactive) | Service | ✅ |
+| BR22 | Xoá hãng / loại / xe là **xoá mềm** (`IsActive = false` hoặc `Status = Inactive`) để giữ lịch sử đơn thuê | Service | ✅ |
+| BR23 | Biển số: đúng định dạng (VD `59A1-123.45`), tự **viết hoa**, **không trùng** (409) | DTO (regex) + Service + DB (UNIQUE) | ✅ |
+| BR24 | Tên mẫu xe 2–100 ký tự; màu bắt buộc, tối đa 30 ký tự | DTO + DB | ✅ |
+| BR25 | Năm sản xuất từ 2000 đến **năm hiện tại + 1** | DTO (attribute tự viết) + DB (CHECK) | ✅ |
+| BR26 | Dung tích 50–1500 cc; **bỏ trống** với xe điện | DTO + DB (CHECK) | ✅ |
+| BR27 | Giá thuê / ngày từ **10.000 đến 10.000.000** đ; tiền cọc 0 – 100.000.000 đ | DTO + DB (CHECK > 0) | ✅ |
+| BR28 | Số km từ 0 đến 1.000.000; khi sửa **không được giảm** so với số km hiện tại | DTO + Service | ✅ |
+| BR29 | Hãng, loại, chi nhánh được chọn phải **tồn tại và đang hoạt động** | Service + DB (FK) | ✅ |
+| BR30 | Không đổi chi nhánh của xe đang được thuê (**Rented**) | Service | ✅ |
+| BR31 | Đổi trạng thái tay chỉ được **Available / Maintenance / Inactive**. **Rented** chỉ do luồng thuê xe đặt | DTO + Service | ✅ |
+| BR32 | Xe đang **Rented** không đổi trạng thái được; xe còn đơn Pending / Confirmed / Renting không chuyển sang Maintenance / Inactive | Service | ✅ |
+| BR33 | Xe có phiếu bảo dưỡng **đang làm (InProgress)** không đổi trạng thái tay — phải hoàn thành hoặc huỷ phiếu | Service | ✅ |
+| BR34 | Tìm xe trống: bắt buộc có ngày nhận + ngày trả, ngày trả > ngày nhận, tối đa 90 ngày, ngày nhận không ở quá khứ | DTO | ✅ |
+| BR35 | Upload ảnh xe: chỉ **.jpg / .jpeg / .png / .webp**, tối đa **2 MB**, kiểm tra **nội dung thật** của file (không chỉ đuôi), tên file sinh ngẫu nhiên, ảnh cũ tự xoá | Service (`FileStorageService`) | ✅ |
+
+### 6.4 Bảo dưỡng xe (Dev 2)
+| # | Quy tắc | Kiểm tra ở | Code |
+|---|---|---|---|
+| BR40 | Vòng đời: **Scheduled → InProgress → Completed**; Scheduled / InProgress → **Cancelled**. Chỉ sửa được phiếu còn mở (Scheduled / InProgress) | Service | ✅ |
+| BR41 | Nội dung bảo dưỡng 5–500 ký tự; chi phí 0 – 100.000.000 đ | DTO + DB (CHECK) | ✅ |
+| BR42 | Ngày bắt đầu không trước hôm nay quá **30 ngày**; ngày dự kiến xong ≥ ngày bắt đầu | DTO + DB (CHECK) | ✅ |
+| BR43 | Mỗi xe chỉ có **1 phiếu đang mở**; xe đã ngừng (Inactive) không lên lịch bảo dưỡng | Service (409 / 400) | ✅ |
+| BR44 | Không bảo dưỡng **trùng thời gian** xe đã có khách đặt hoặc đang thuê | Service | ✅ |
+| BR45 | **Bắt đầu** bảo dưỡng: xe không được đang Rented / Inactive → phiếu InProgress, xe → **Maintenance** (không cho thuê) | Service | ✅ |
+| BR46 | **Hoàn thành**: ngày xong không trước ngày bắt đầu và **không ở tương lai** → xe về **Available** | Service | ✅ |
+| BR47 | **Huỷ** phiếu đang InProgress → xe về **Available**; phiếu đã Completed / Cancelled không huỷ được | Service | ✅ |
+
+### 6.5 Phân quyền (Dev 1)
+| Chức năng | Guest | Customer | Staff | Admin |
+|---|---|---|---|---|
+| Xem xe, hãng, loại, tìm xe trống | ✅ | ✅ | ✅ | ✅ |
+| Thêm / sửa / ngừng / upload ảnh xe, hãng, loại | ❌ | ❌ | ❌ | ✅ |
+| Đổi trạng thái xe (Available ↔ Maintenance) | ❌ | ❌ | ✅ | ✅ |
+| Phiếu bảo dưỡng, tra cứu đơn thuê (`/odata/Rentals`) | ❌ | ❌ | ✅ | ✅ |
+| Chi nhánh, tài khoản, Dashboard | ❌ | ❌ | ❌ | ✅ |
+
+Chưa đăng nhập → **401**; đăng nhập nhưng sai quyền → **403**.
+
+> 📝 **Dev 1 bổ sung:** quy tắc validate của Tài khoản, Đăng ký / Đăng nhập, Đổi mật khẩu, Chi nhánh (VD độ dài mật khẩu, định dạng SĐT / CCCD, giờ mở cửa < giờ đóng cửa…) và Payments khi làm xong.
 
 ---
 

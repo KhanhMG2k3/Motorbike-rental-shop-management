@@ -67,7 +67,14 @@
             {
                 <tr>
                     <td>
-                        <a asp-controller="Motorbikes" asp-action="Edit" asp-route-id="@m.MotorbikeId" class="fw-semibold text-decoration-none">@m.ModelName</a>
+                        @if (User.IsInRole(AppRoles.Admin))
+                        {
+                            <a asp-controller="Motorbikes" asp-action="Edit" asp-route-id="@m.MotorbikeId" class="fw-semibold text-decoration-none">@m.ModelName</a>
+                        }
+                        else
+                        {
+                            <a asp-area="" asp-controller="Motorbikes" asp-action="Details" asp-route-id="@m.MotorbikeId" class="fw-semibold text-decoration-none">@m.ModelName</a>
+                        }
                         <div class="small text-muted">@m.LicensePlate</div>
                     </td>
                     <td class="small">@m.BranchName</td>

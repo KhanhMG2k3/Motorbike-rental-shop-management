@@ -35,10 +35,16 @@
                                         <li><a class="dropdown-item" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">Tổng quan</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                     }
-                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Branches" asp-action="Index">Chi nhánh</a></li>
+                                    @if (User.IsInRole(AppRoles.Admin))
+                                    {
+                                        <li><a class="dropdown-item" asp-area="Admin" asp-controller="Branches" asp-action="Index">Chi nhánh</a></li>
+                                    }
                                     <li><a class="dropdown-item" asp-area="Admin" asp-controller="Motorbikes" asp-action="Index">Xe máy</a></li>
-                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Brands" asp-action="Index">Hãng xe</a></li>
-                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Categories" asp-action="Index">Loại xe</a></li>
+                                    @if (User.IsInRole(AppRoles.Admin))
+                                    {
+                                        <li><a class="dropdown-item" asp-area="Admin" asp-controller="Brands" asp-action="Index">Hãng xe</a></li>
+                                        <li><a class="dropdown-item" asp-area="Admin" asp-controller="Categories" asp-action="Index">Loại xe</a></li>
+                                    }
                                     <li><a class="dropdown-item" asp-area="Admin" asp-controller="Maintenances" asp-action="Index">Bảo dưỡng</a></li>
                                     @if (User.IsInRole(AppRoles.Admin))
                                     {

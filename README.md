@@ -90,7 +90,7 @@ Ví dụ: xem file [MotoRent.API/MotoRent.API.http](MotoRent.API/MotoRent.API.ht
   - Bảng test case: [docs/TestCases_Dev1.md](docs/TestCases_Dev1.md)
   - Chạy lệnh: `npx newman run docs/postman/MotoRent_Dev1.postman_collection.json`
 - **Dev 2 (Catalog, Bảo dưỡng, OData)**:
-  - Collection: [docs/postman/MotoRent_Dev2.postman_collection.json](docs/postman/MotoRent_Dev2.postman_collection.json) – 57 request, 92 assertion.
+  - Collection: [docs/postman/MotoRent_Dev2.postman_collection.json](docs/postman/MotoRent_Dev2.postman_collection.json) – 75 request, 116 assertion (tự đăng nhập Admin/Staff/Customer, có test phân quyền 401/403).
   - Bảng test case: [docs/TestCases_Dev2.md](docs/TestCases_Dev2.md)
   - Chạy lệnh: `npx newman run docs/postman/MotoRent_Dev2.postman_collection.json`
 

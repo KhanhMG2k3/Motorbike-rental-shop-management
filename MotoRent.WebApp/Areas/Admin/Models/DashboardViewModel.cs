@@ -8,4 +8,5 @@ public class DashboardViewModel
     public List<MonthlyRevenueDto> MonthlyRevenues { get; set; } = new();
     public List<MotorbikeStatisticDto> TopMotorbikes { get; set; } = new();
     public int SelectedYear { get; set; }
+    public int SelectedMonth { get; set; }
 }

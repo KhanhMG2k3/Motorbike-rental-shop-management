@@ -81,8 +81,13 @@
             </div>
 
             <div class="form-check mb-3">
-                <input asp-for="Filter.OnlyAvailable" name="onlyAvailable" class="form-check-input" />
-                <label asp-for="Filter.OnlyAvailable" class="form-check-label"></label>
+                @* Không dùng asp-for ở đây: với checkbox, asp-for sẽ tự sinh thêm 1 input ẩn
+                   tên "Filter.OnlyAvailable" (theo đường dẫn model, bỏ qua name= đã gán tay).
+                   Input ẩn đó khiến ASP.NET Core hiểu nhầm cả form đang gửi theo tiền tố "Filter.",
+                   nên bỏ qua luôn brandId/categoryId (gửi trần, không tiền tố) -> mất lọc. *@
+                <input type="checkbox" name="onlyAvailable" value="true" checked="@(f.OnlyAvailable ? "checked" : null)"
+                       class="form-check-input" id="onlyAvailableInput" />
+                <label class="form-check-label" for="onlyAvailableInput">Chỉ xe sẵn sàng</label>
             </div>
 
             <div class="d-grid gap-2">

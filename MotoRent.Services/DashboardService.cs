@@ -16,7 +16,7 @@ public class DashboardService : IDashboardService
         _context = context;
     }
 
-    public async Task<DashboardSummaryDto> GetSummaryAsync()
+    public async Task<DashboardSummaryDto> GetSummaryAsync(int? year = null, int? month = null)
     {
         var totalBikes = await _context.Motorbikes.CountAsync();
         var availableBikes = await _context.Motorbikes.CountAsync(m => m.Status == MotorbikeStatus.Available);
@@ -29,10 +29,13 @@ public class DashboardService : IDashboardService
 
         var totalRevenue = await _context.VwMonthlyRevenues.SumAsync(v => (decimal?)v.TotalRevenue) ?? 0m;
 
+        // Doanh thu theo tháng được chọn (mặc định: tháng/năm hiện tại nếu không truyền)
         var now = DateTime.Now;
-        var thisMonthRecord = await _context.VwMonthlyRevenues
-            .FirstOrDefaultAsync(v => v.Year == now.Year && v.Month == now.Month);
-        var thisMonthRevenue = thisMonthRecord?.TotalRevenue ?? 0m;
+        var targetYear = year ?? now.Year;
+        var targetMonth = Math.Clamp(month ?? now.Month, 1, 12);
+        var monthRecord = await _context.VwMonthlyRevenues
+            .FirstOrDefaultAsync(v => v.Year == targetYear && v.Month == targetMonth);
+        var monthRevenue = monthRecord?.TotalRevenue ?? 0m;
 
         return new DashboardSummaryDto
         {
@@ -44,7 +47,9 @@ public class DashboardService : IDashboardService
             TotalStaff = totalStaff,
             CompletedRentals = completedRentals,
             TotalRevenue = totalRevenue,
-            ThisMonthRevenue = thisMonthRevenue
+            ThisMonthRevenue = monthRevenue,
+            SelectedYear = targetYear,
+            SelectedMonth = targetMonth
         };
     }
 

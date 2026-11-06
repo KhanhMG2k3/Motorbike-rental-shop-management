@@ -17,11 +17,12 @@ public class DashboardController : Controller
         _dashboardApi = dashboardApi;
     }
 
-    public async Task<IActionResult> Index([FromQuery] int? year)
+    public async Task<IActionResult> Index([FromQuery] int? year, [FromQuery] int? month)
     {
         var targetYear = year ?? DateTime.Now.Year;
+        var targetMonth = Math.Clamp(month ?? DateTime.Now.Month, 1, 12);
 
-        var summaryRes = await _dashboardApi.GetSummaryAsync();
+        var summaryRes = await _dashboardApi.GetSummaryAsync(targetYear, targetMonth);
         var monthlyRes = await _dashboardApi.GetMonthlyRevenueAsync(targetYear);
         var topBikesRes = await _dashboardApi.GetTopMotorbikesAsync(10);
 
@@ -32,7 +33,8 @@ public class DashboardController : Controller
             Summary = summaryRes.Data ?? new(),
             MonthlyRevenues = monthlyRes.Data ?? new(),
             TopMotorbikes = topBikesRes.Data ?? new(),
-            SelectedYear = targetYear
+            SelectedYear = targetYear,
+            SelectedMonth = targetMonth
         };
 
         return View(vm);

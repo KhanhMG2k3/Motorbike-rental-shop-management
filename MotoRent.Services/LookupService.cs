@@ -25,7 +25,9 @@ public class LookupService : ILookupService
             {
                 BranchId = b.BranchId,
                 BranchName = b.BranchName,
-                Address = b.Address
+                Address = b.Address,
+                OpenTime = b.OpenTime,
+                CloseTime = b.CloseTime
             })
             .ToListAsync();
     }

@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.ComponentModel;
 
 namespace MotoRent.BusinessObjects.DTOs.Rentals
 {
@@ -68,21 +69,28 @@ namespace MotoRent.BusinessObjects.DTOs.Rentals
     public class CreateRentalDto : IValidatableObject
     {
         public const int MaxRentalDays = 90;
+
         /// <summary>
-        /// Staff có thể truyền CustomerId để đặt hộ khách. Nếu là Customer tự đặt thì hệ thống lấy từ Token.
+        /// Chỉ dùng khi Staff đặt hộ khách. Customer tự đặt thì để null (hoặc bỏ qua).
         /// </summary>
         public int? CustomerId { get; set; }
+
         [Range(1, int.MaxValue, ErrorMessage = "Vui lòng chọn chi nhánh nhận xe.")]
         public int BranchId { get; set; }
+
         [Required(ErrorMessage = "Vui lòng chọn ngày nhận xe.")]
         public DateTime StartDate { get; set; }
+
         [Required(ErrorMessage = "Vui lòng chọn ngày trả xe.")]
         public DateTime ExpectedReturnDate { get; set; }
+
         [Required(ErrorMessage = "Vui lòng chọn ít nhất 1 xe để thuê.")]
         [MinLength(1, ErrorMessage = "Vui lòng chọn ít nhất 1 xe để thuê.")]
         public List<int> MotorbikeIds { get; set; } = new();
+
         [StringLength(500, ErrorMessage = "Ghi chú tối đa 500 ký tự.")]
         public string? Note { get; set; }
+
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
             if (ExpectedReturnDate <= StartDate)
@@ -103,58 +111,82 @@ namespace MotoRent.BusinessObjects.DTOs.Rentals
             }
         }
     }
+
     public class ConfirmRentalDto
     {
         [Required(ErrorMessage = "Vui lòng chọn phương thức thanh toán tiền cọc.")]
         [RegularExpression("^(Cash|BankTransfer|Momo|VNPay)$", ErrorMessage = "Phương thức thanh toán phải là: Cash, BankTransfer, Momo hoặc VNPay.")]
+        [DefaultValue("Cash")]
         public string PaymentMethod { get; set; } = "Cash";
+
         public string? TransactionRef { get; set; }
         public string? Note { get; set; }
     }
+
     public class PickupRentalDto
     {
         [Required(ErrorMessage = "Vui lòng nhập thông tin biên bản bàn giao xe.")]
+        [MinLength(1, ErrorMessage = "Vui lòng nhập thông tin bàn giao cho ít nhất 1 xe.")]
         public List<PickupItemDto> Items { get; set; } = new();
     }
+
     public class PickupItemDto
     {
         [Range(1, int.MaxValue, ErrorMessage = "MotorbikeId không hợp lệ.")]
         public int MotorbikeId { get; set; }
+
         [Range(0, 1000000, ErrorMessage = "Số km lúc giao không hợp lệ.")]
         public int PickupOdometer { get; set; }
+
         [StringLength(500, ErrorMessage = "Mô tả tình trạng xe tối đa 500 ký tự.")]
         public string? PickupCondition { get; set; }
     }
+
     public class ReturnRentalDto
     {
         public DateTime? ActualReturnDate { get; set; }
+
         [Range(0, 100000000, ErrorMessage = "Phí hư hỏng không hợp lệ.")]
         public decimal DamageFee { get; set; } = 0;
+
         [Range(0, 100000000, ErrorMessage = "Số tiền giảm giá không hợp lệ.")]
         public decimal DiscountAmount { get; set; } = 0;
+
         [Required(ErrorMessage = "Vui lòng chọn phương thức thanh toán / hoàn cọc.")]
         [RegularExpression("^(Cash|BankTransfer|Momo|VNPay)$", ErrorMessage = "Phương thức thanh toán phải là: Cash, BankTransfer, Momo hoặc VNPay.")]
+        [DefaultValue("Cash")]
         public string PaymentMethod { get; set; } = "Cash";
+
         [Required(ErrorMessage = "Vui lòng cung cấp thông tin hoàn trả của từng xe.")]
+        [MinLength(1, ErrorMessage = "Vui lòng nhập thông tin trả xe cho ít nhất 1 xe.")]
         public List<ReturnItemDto> Items { get; set; } = new();
     }
+
     public class ReturnItemDto
     {
         [Range(1, int.MaxValue, ErrorMessage = "MotorbikeId không hợp lệ.")]
         public int MotorbikeId { get; set; }
+
         [Range(0, 1000000, ErrorMessage = "Số km lúc trả không hợp lệ.")]
         public int ReturnOdometer { get; set; }
+
         [StringLength(500, ErrorMessage = "Mô tả tình trạng xe lúc trả tối đa 500 ký tự.")]
         public string? ReturnCondition { get; set; }
+
         /// <summary>Nếu đánh dấu true, xe sẽ chuyển sang trạng thái Maintenance để kiểm tra sửa chữa.</summary>
         public bool IsDamaged { get; set; } = false;
     }
+
     public class CancelRentalDto
     {
         [Required(ErrorMessage = "Vui lòng nhập lý do huỷ đơn thuê.")]
         [StringLength(500, MinimumLength = 3, ErrorMessage = "Lý do huỷ đơn từ 3 đến 500 ký tự.")]
         public string CancelReason { get; set; } = null!;
+
         /// <summary>Phương thức hoàn cọc nếu đơn đã cọc (mặc định Cash).</summary>
+        [Required(ErrorMessage = "Vui lòng chọn phương thức hoàn cọc.")]
+        [RegularExpression("^(Cash|BankTransfer|Momo|VNPay)$", ErrorMessage = "Phương thức hoàn cọc phải là: Cash, BankTransfer, Momo hoặc VNPay.")]
+        [DefaultValue("Cash")]
         public string RefundMethod { get; set; } = "Cash";
     }
 }

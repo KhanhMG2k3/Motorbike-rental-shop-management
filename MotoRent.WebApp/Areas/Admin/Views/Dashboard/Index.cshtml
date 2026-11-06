@@ -8,6 +8,13 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h4 mb-0">Tổng quan tình hình kinh doanh</h1>
     <form method="get" class="d-flex align-items-center gap-2">
+        <label class="small text-muted text-nowrap">Tháng:</label>
+        <select name="month" class="form-select form-select-sm" onchange="this.form.submit()">
+            @for (int m = 1; m <= 12; m++)
+            {
+                <option value="@m" selected="@(m == Model.SelectedMonth)">Tháng @m</option>
+            }
+        </select>
         <label class="small text-muted text-nowrap">Năm:</label>
         <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
             @for (int y = DateTime.Now.Year; y >= 2024; y--)
@@ -24,7 +31,13 @@
 <div class="row g-3 mb-4">
     <div class="col-12 col-sm-6 col-xl-3">
         <div class="card border-0 shadow-sm bg-primary text-white p-3 h-100">
-            <div class="small opacity-75">Doanh thu tháng này (@DateTime.Now.Month/@Model.SelectedYear)</div>
+            <div class="small opacity-75">
+                Doanh thu tháng @Model.Summary.SelectedMonth/@Model.Summary.SelectedYear
+                @if (Model.Summary.SelectedMonth == DateTime.Now.Month && Model.Summary.SelectedYear == DateTime.Now.Year)
+                {
+                    <span>(tháng này)</span>
+                }
+            </div>
             <div class="h3 fw-bold my-1">@DisplayHelper.Money(Model.Summary.ThisMonthRevenue)</div>
             <div class="small opacity-75">Tổng: @DisplayHelper.Money(Model.Summary.TotalRevenue)</div>
         </div>

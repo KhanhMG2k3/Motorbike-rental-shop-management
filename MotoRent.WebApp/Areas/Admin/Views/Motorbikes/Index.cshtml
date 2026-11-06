@@ -18,6 +18,8 @@
         RouteValues = routeValues
     };
     var returnUrl = Context.Request.Path + Context.Request.QueryString;
+    // Staff chỉ được xem + đổi trạng thái; thêm / sửa / ngừng xe là của Admin
+    var isAdmin = User.IsInRole(AppRoles.Admin);
 }
 
 <partial name="_AdminNav" />
@@ -27,7 +29,10 @@
         <h1 class="h4 mb-0">Xe máy</h1>
         <small class="text-muted">@Model.TotalCount xe</small>
     </div>
-    <a asp-action="Create" class="btn btn-primary">+ Thêm xe</a>
+    @if (isAdmin)
+    {
+        <a asp-action="Create" class="btn btn-primary">+ Thêm xe</a>
+    }
 </div>
 
 <partial name="_StatusMessage" />
@@ -101,20 +106,39 @@
                     <td class="text-end">@DisplayHelper.Money(bike.PricePerDay)</td>
                     <td><status-badge value="@bike.Status" kind="motorbike" /></td>
                     <td class="text-end text-nowrap">
-                        <a asp-action="Edit" asp-route-id="@bike.MotorbikeId" class="btn btn-sm btn-outline-primary">Sửa</a>
-                        @if (bike.Status != MotorbikeStatus.Inactive)
+                        @if (isAdmin)
                         {
-                            <form asp-action="Deactivate" asp-route-id="@bike.MotorbikeId" method="post" class="d-inline"
-                                  onsubmit="return confirm('Ngừng cho thuê xe @bike.LicensePlate?');">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Ngừng</button>
-                            </form>
+                            <a asp-action="Edit" asp-route-id="@bike.MotorbikeId" class="btn btn-sm btn-outline-primary">Sửa</a>
+                            @if (bike.Status != MotorbikeStatus.Inactive)
+                            {
+                                <form asp-action="Deactivate" asp-route-id="@bike.MotorbikeId" method="post" class="d-inline"
+                                      onsubmit="return confirm('Ngừng cho thuê xe @bike.LicensePlate?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Ngừng</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form asp-action="ChangeStatus" asp-route-id="@bike.MotorbikeId" method="post" class="d-inline">
+                                    <input type="hidden" name="status" value="@MotorbikeStatus.Available" />
+                                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+                                    <button type="submit" class="btn btn-sm btn-outline-success">Mở lại</button>
+                                </form>
+                            }
+                        }
+                        else if (bike.Status == MotorbikeStatus.Rented)
+                        {
+                            <span class="small text-muted">Đang cho thuê</span>
                         }
                         else
                         {
-                            <form asp-action="ChangeStatus" asp-route-id="@bike.MotorbikeId" method="post" class="d-inline">
-                                <input type="hidden" name="status" value="@MotorbikeStatus.Available" />
+                            @* Staff: đổi nhanh Sẵn sàng ↔ Bảo dưỡng (ngừng hẳn xe là việc của Admin) *@
+                            <form asp-action="ChangeStatus" asp-route-id="@bike.MotorbikeId" method="post" class="d-inline-flex gap-1">
                                 <input type="hidden" name="returnUrl" value="@returnUrl" />
-                                <button type="submit" class="btn btn-sm btn-outline-success">Mở lại</button>
+                                <select name="status" class="form-select form-select-sm" style="width:auto">
+                                    <option value="@MotorbikeStatus.Available" selected="@(bike.Status == MotorbikeStatus.Available)">Sẵn sàng</option>
+                                    <option value="@MotorbikeStatus.Maintenance" selected="@(bike.Status == MotorbikeStatus.Maintenance)">Bảo dưỡng</option>
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">Lưu</button>
                             </form>
                         }
                     </td>

@@ -9,8 +9,14 @@ public class DashboardApiClient : ApiClientBase
 {
     public DashboardApiClient(HttpClient http) : base(http) { }
 
-    public Task<ApiResult<DashboardSummaryDto>> GetSummaryAsync()
-        => GetAsync<DashboardSummaryDto>("api/dashboard/summary");
+    public Task<ApiResult<DashboardSummaryDto>> GetSummaryAsync(int? year = null, int? month = null)
+    {
+        var query = new List<string>();
+        if (year.HasValue) query.Add($"year={year.Value}");
+        if (month.HasValue) query.Add($"month={month.Value}");
+        var url = "api/dashboard/summary" + (query.Count > 0 ? "?" + string.Join("&", query) : "");
+        return GetAsync<DashboardSummaryDto>(url);
+    }
 
     public Task<ApiResult<List<MonthlyRevenueDto>>> GetMonthlyRevenueAsync(int? year = null)
     {

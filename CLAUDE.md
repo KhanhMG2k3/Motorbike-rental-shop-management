@@ -19,7 +19,9 @@
 - Không trả Entity từ API, luôn dùng DTO: `{Entity}Dto`, `Create{Entity}Dto`, `Update{Entity}Dto`.
 - Map Entity ↔ DTO **thủ công** trong `MotoRent.Services/Mappings` (không dùng AutoMapper). Dùng `Expression<Func<Entity, Dto>>` trong `.Select()` để EF dịch ra SQL.
 - Validation bằng DataAnnotations trên DTO, thông báo lỗi **tiếng Việt**. Quy tắc cần truy vấn DB thì kiểm tra trong Service.
-- Mọi response bọc `ApiResponse<T>` (trừ OData). Lỗi nghiệp vụ throw `BusinessException` (400), `NotFoundException` (404), `ConflictException` (409) → `ExceptionMiddleware` xử lý.
+- Mọi response bọc `ApiResponse<T>` (trừ OData). Lỗi nghiệp vụ throw `BusinessException` (400), `NotFoundException` (404), `ConflictException` (409), `ForbiddenException` (403 – đã đăng nhập nhưng không có quyền với dữ liệu đó, VD khách xem đơn của người khác) → `ExceptionMiddleware` xử lý. Chưa đăng nhập: `[Authorize]` trả 401.
+- Controller cần đăng nhập thì gắn `[Authorize]` / `[Authorize(Roles = ...)]`; **không** viết "fallback tạm" khi thiếu token. Lấy user bằng `User.GetUserId()` rồi ném `UnauthorizedAccessException` nếu null.
+- Giờ mở cửa chi nhánh: dùng `BranchHours` (`MotoRent.BusinessObjects/Helpers`) khi kiểm tra giờ nhận / trả xe (quy tắc BR12).
 - Trạng thái lưu dạng string, dùng hằng số trong `BusinessObjects/Constants` (`MotorbikeStatus`, `RentalStatus`, `AppRoles`).
 - Async/await toàn bộ, tên method kết thúc bằng `Async`.
 - Xoá = xoá mềm (`IsActive = false` hoặc `Status = Inactive`) để giữ lịch sử.
@@ -32,10 +34,11 @@
 - Dev 3: Rentals (tạo/duyệt/giao/trả/huỷ), Reviews, Layout/Partial/TagHelper, báo cáo.
 - Kiểm tra trùng lịch xe: dùng `IMotorbikeRepository.IsAvailableAsync(...)` (đã có sẵn).
 - Người đang đăng nhập ở API: `User.GetUserId()` (`MotoRent.API/Extensions`) – trả null khi chưa có JWT.
-- Chỗ chờ Dev 1 gắn phân quyền / JWT: tìm `TODO (Dev 1)`.
+- Tất cả quy tắc nghiệp vụ + validate đã ghi ở `LuongNghiepVu.md` mục 6 (BR1…BR76) — sửa logic thì cập nhật luôn tài liệu này.
 
 ## Chạy
 - API: `dotnet run --project MotoRent.API --launch-profile http` → http://localhost:5001/swagger
 - WebApp: `dotnet run --project MotoRent.WebApp --launch-profile http` → http://localhost:5002
 - Connection string riêng từng máy: `MotoRent.API/appsettings.Local.json` (gitignored).
-- Test API: `npx newman run docs/postman/MotoRent_Dev2.postman_collection.json` (API phải đang chạy).
+- Test API: `npx newman run docs/postman/MotoRent_Dev1.postman_collection.json` và `..._Dev2...` (API phải đang chạy).
+- Test luồng thuê xe + thanh toán + phân quyền: `node docs/e2e/rental-flow.e2e.js` (nên chạy lại `MotorbikeRentalDB.sql` trước). **Mỗi lần gộp code lên `develop`/`main` nên chạy lại cả 3 bộ test này.**

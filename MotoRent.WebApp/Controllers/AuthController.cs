@@ -158,6 +158,49 @@ public class AuthController : Controller
     }
 
     [HttpGet]
+    public IActionResult ForgotPassword()
+    {
+        if (User.Identity?.IsAuthenticated == true) return RedirectToDefaultPage();
+        return View(new ForgotPasswordDto());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto)
+    {
+        if (!ModelState.IsValid) return View(dto);
+
+        var result = await _authApi.ForgotPasswordAsync(dto);
+        TempData["Success"] = result.Message
+            ?? "Nếu email tồn tại trong hệ thống, mã xác nhận đã được gửi đến hộp thư của bạn.";
+        return RedirectToAction(nameof(ResetPassword), new { email = dto.Email });
+    }
+
+    [HttpGet]
+    public IActionResult ResetPassword(string? email = null)
+    {
+        if (User.Identity?.IsAuthenticated == true) return RedirectToDefaultPage();
+        return View(new ResetPasswordDto { Email = email ?? string.Empty });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
+    {
+        if (!ModelState.IsValid) return View(dto);
+
+        var result = await _authApi.ResetPasswordAsync(dto);
+        if (!result.Success)
+        {
+            result.AddErrorsTo(ModelState);
+            return View(dto);
+        }
+
+        TempData["Success"] = "Đặt lại mật khẩu thành công. Vui lòng đăng nhập.";
+        return RedirectToAction(nameof(Login));
+    }
+
+    [HttpGet]
     public IActionResult AccessDenied() => View();
 
     private async Task SignInUserAsync(AuthResponseDto auth)

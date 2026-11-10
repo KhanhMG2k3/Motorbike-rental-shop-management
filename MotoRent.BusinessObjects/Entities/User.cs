@@ -41,6 +41,8 @@ public partial class User
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
+    public virtual ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
+
     public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 
     public virtual ICollection<Rental> RentalCustomers { get; set; } = new List<Rental>();

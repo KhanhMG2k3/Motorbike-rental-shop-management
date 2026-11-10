@@ -69,4 +69,23 @@ public class AuthController : ControllerBase
         await _authService.ChangePasswordAsync(userId, dto);
         return Ok(ApiResponse<object>.Ok(null, "Đổi mật khẩu thành công."));
     }
+
+    /// <summary>Quên mật khẩu: gửi mã xác nhận 6 số qua email (hiệu lực 10 phút).</summary>
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<object>>> ForgotPassword(ForgotPasswordDto dto)
+    {
+        await _authService.ForgotPasswordAsync(dto);
+        return Ok(ApiResponse<object>.Ok(null,
+            "Nếu email tồn tại trong hệ thống, mã xác nhận đã được gửi đến hộp thư của bạn."));
+    }
+
+    /// <summary>Đặt lại mật khẩu bằng mã xác nhận đã gửi qua email.</summary>
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<object>>> ResetPassword(ResetPasswordDto dto)
+    {
+        await _authService.ResetPasswordAsync(dto);
+        return Ok(ApiResponse<object>.Ok(null, "Đặt lại mật khẩu thành công. Vui lòng đăng nhập."));
+    }
 }

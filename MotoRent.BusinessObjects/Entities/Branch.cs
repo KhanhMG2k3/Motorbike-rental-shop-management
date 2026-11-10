@@ -17,6 +17,10 @@ public partial class Branch
 
     public TimeOnly CloseTime { get; set; }
 
+    public decimal? Latitude { get; set; }
+
+    public decimal? Longitude { get; set; }
+
     public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; }

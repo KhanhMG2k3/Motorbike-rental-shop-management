@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -17,11 +18,19 @@ namespace MotoRent.Services;
 public class AuthService : IAuthService
 {
     private readonly IGenericRepository<User> _userRepo;
+    private readonly IGenericRepository<PasswordResetToken> _resetRepo;
+    private readonly IEmailService _emailService;
     private readonly IConfiguration _config;
 
-    public AuthService(IGenericRepository<User> userRepo, IConfiguration config)
+    public AuthService(
+        IGenericRepository<User> userRepo,
+        IGenericRepository<PasswordResetToken> resetRepo,
+        IEmailService emailService,
+        IConfiguration config)
     {
         _userRepo = userRepo;
+        _resetRepo = resetRepo;
+        _emailService = emailService;
         _config = config;
     }
 
@@ -130,6 +139,59 @@ public class AuthService : IAuthService
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
         user.UpdatedAt = DateTime.Now;
         await _userRepo.SaveChangesAsync();
+    }
+
+    public async Task ForgotPasswordAsync(ForgotPasswordDto dto)
+    {
+        var email = dto.Email.Trim().ToLowerInvariant();
+        var user = await _userRepo.Query().FirstOrDefaultAsync(u => u.Email == email);
+
+        // Không tiết lộ email có tồn tại trong hệ thống hay không -> luôn trả về như nhau cho API Controller
+        if (user == null || !user.IsActive) return;
+
+        var code = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+        await _resetRepo.AddAsync(new PasswordResetToken
+        {
+            UserId = user.UserId,
+            CodeHash = HashCode(code),
+            ExpiresAt = DateTime.Now.AddMinutes(10),
+            CreatedAt = DateTime.Now
+        });
+        await _resetRepo.SaveChangesAsync();
+
+        var body = $"<p>Xin chào {user.FullName},</p>" +
+                   "<p>Mã xác nhận đặt lại mật khẩu MotoRent của bạn là:</p>" +
+                   $"<h2 style=\"letter-spacing:4px\">{code}</h2>" +
+                   "<p>Mã có hiệu lực trong <b>10 phút</b>. Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>";
+        await _emailService.SendAsync(user.Email, "Mã đặt lại mật khẩu MotoRent", body);
+    }
+
+    public async Task ResetPasswordAsync(ResetPasswordDto dto)
+    {
+        var email = dto.Email.Trim().ToLowerInvariant();
+        var codeHash = HashCode(dto.Code.Trim());
+        var now = DateTime.Now;
+
+        var user = await _userRepo.QueryTracking().FirstOrDefaultAsync(u => u.Email == email)
+            ?? throw new BusinessException("Mã xác nhận không đúng hoặc đã hết hạn.");
+
+        var token = await _resetRepo.QueryTracking()
+            .Where(t => t.UserId == user.UserId && t.UsedAt == null && t.ExpiresAt > now && t.CodeHash == codeHash)
+            .OrderByDescending(t => t.CreatedAt)
+            .FirstOrDefaultAsync()
+            ?? throw new BusinessException("Mã xác nhận không đúng hoặc đã hết hạn.");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+        user.UpdatedAt = DateTime.Now;
+        token.UsedAt = DateTime.Now;
+
+        await _userRepo.SaveChangesAsync();
+    }
+
+    private static string HashCode(string code)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(code));
+        return Convert.ToHexString(bytes);
     }
 
     private AuthResponseDto GenerateAuthResponse(User user)

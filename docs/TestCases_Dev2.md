@@ -1,7 +1,7 @@
 # Test case – Dev 2 (Catalog, Bảo dưỡng, OData)
 
-> Người thực hiện: **Đạt (Dev 2)** · Ngày test: 17/10/2026
-> Kết quả Postman/Newman: **57 request · 92 assertion · 0 lỗi** (chạy 2 lần liên tiếp đều pass)
+> Người thực hiện: **Đạt (Dev 2)** · Ngày test: 17/10/2026, chạy lại 19/10/2026 sau khi Dev 1 thêm JWT
+> Kết quả Postman/Newman: **75 request · 116 assertion · 0 lỗi** (gồm 15 test phân quyền JWT + Role)
 
 ## 1. Cách chạy test tự động
 
@@ -83,6 +83,26 @@ npx newman run docs/postman/MotoRent_Dev2.postman_collection.json
 | TC-O05 | `$filter=Abc eq 1` (cột không tồn tại) | 400 | ✅ |
 | TC-O06 | `/odata/Rentals?$filter=Status eq 'Renting'` | Toàn đơn Renting | ✅ |
 | TC-O07 | `/odata/Rentals?$expand=Customer` | 400 – DTO không có quan hệ, không thể lộ `PasswordHash` | ✅ |
+
+### 2.4b Phân quyền (JWT + Role) – sau khi Dev 1 cấu hình đăng nhập
+| ID | Tình huống | Kết quả mong đợi | KQ |
+|---|---|---|---|
+| TC-A01 | Thêm hãng không gửi token | 401 | ✅ |
+| TC-A02 | Customer / Staff thêm hãng | 403 (chỉ Admin) | ✅ |
+| TC-A03 | Customer thêm xe, upload ảnh | 403 | ✅ |
+| TC-A04 | Không token / Customer xem phiếu bảo dưỡng | 401 / 403 | ✅ |
+| TC-A05 | Staff xem phiếu bảo dưỡng | 200 | ✅ |
+| TC-A06 | Staff đổi trạng thái xe | 200 (Admin + Staff) | ✅ |
+| TC-A07 | Customer đổi trạng thái xe | 403 | ✅ |
+| TC-A08 | Không token / Customer tra cứu `/odata/Rentals` | 401 / 403 | ✅ |
+| TC-A09 | Khách chưa đăng nhập xem xe (`/odata/Motorbikes`, `/api/brands`) | 200 (công khai) | ✅ |
+| TC-A10 | Gửi token giả | 401 | ✅ |
+| TC-A11 | WebApp: chưa đăng nhập vào `/Admin/...` | Chuyển sang trang Đăng nhập | ✅ |
+| TC-A12 | WebApp: Customer vào `/Admin/...` | Trang "Không có quyền" | ✅ |
+| TC-A13 | WebApp: Staff vào Xe máy, Bảo dưỡng | Vào được; **không thấy** nút Thêm / Sửa / Ngừng xe và menu Hãng, Loại, Chi nhánh, Tổng quan, Tài khoản | ✅ |
+| TC-A14 | WebApp: Staff đổi nhanh trạng thái xe Sẵn sàng ↔ Bảo dưỡng | Thành công | ✅ |
+| TC-A15 | WebApp: Staff lên lịch / huỷ phiếu bảo dưỡng (token gửi kèm qua `BearerTokenHandler`) | Thành công | ✅ |
+| TC-A16 | WebApp: Admin vào tất cả trang quản trị | 200 | ✅ |
 
 ### 2.5 WebApp – Trang quản trị (test tay trên trình duyệt)
 | ID | Thao tác | Kết quả mong đợi | KQ |

@@ -23,4 +23,10 @@ public class AuthApiClient : ApiClientBase
 
     public Task<ApiResult<object>> ChangePasswordAsync(ChangePasswordDto dto)
         => PutAsync<object>("api/auth/change-password", dto);
+
+    public Task<ApiResult<object>> ForgotPasswordAsync(ForgotPasswordDto dto)
+        => PostAsync<object>("api/auth/forgot-password", dto);
+
+    public Task<ApiResult<object>> ResetPasswordAsync(ResetPasswordDto dto)
+        => PostAsync<object>("api/auth/reset-password", dto);
 }

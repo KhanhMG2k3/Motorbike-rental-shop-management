@@ -1,0 +1,327 @@
+﻿@model CustomerRentalDetailViewModel
+@{
+    var r = Model.Rental;
+    ViewData["Title"] = $"Đơn thuê {r.RentalCode}";
+    var finalTotal = r.TotalAmount ?? (r.SubTotal - r.DiscountAmount + r.LateFee + r.DamageFee);
+
+    int stepIndex = r.Status switch
+    {
+        RentalStatus.Pending => 1,
+        RentalStatus.Confirmed => 2,
+        RentalStatus.Renting => 3,
+        RentalStatus.Completed => 4,
+        _ => 0
+    };
+
+    string StepClass(int s) => stepIndex == 0 ? "" : (s < stepIndex || stepIndex == 4 ? "done" : (s == stepIndex ? "current" : ""));
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="MyRentals">Đơn thuê của tôi</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@r.RentalCode</li>
+    </ol>
+</nav>
+
+<partial name="_StatusMessage" />
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <h1 class="h3 mb-0">Đơn thuê @r.RentalCode</h1>
+            <status-badge value="@r.Status" kind="rental" />
+        </div>
+        <small class="text-muted">Đặt lúc @DisplayHelper.DateTimeText(r.CreatedAt) · Chi nhánh: <strong>@r.BranchName</strong></small>
+    </div>
+    <a asp-action="MyRentals" class="btn btn-outline-secondary btn-sm">← Quay lại danh sách</a>
+</div>
+
+<!-- Thanh tiến trình trạng thái -->
+@if (r.Status == RentalStatus.Cancelled)
+{
+    <div class="alert alert-secondary mb-4">
+        <strong>❌ Đơn thuê này đã bị huỷ.</strong>
+        @if (!string.IsNullOrWhiteSpace(r.CancelReason))
+        {
+            <div>Lý do huỷ: <em>@r.CancelReason</em></div>
+        }
+    </div>
+}
+else
+{
+    <div class="rental-stepper mb-4 flex-column flex-md-row">
+        <div class="rental-step @StepClass(1)">1. Đặt đơn (Chờ duyệt)</div>
+        <div class="rental-step @StepClass(2)">2. Đã xác nhận & Cọc</div>
+        <div class="rental-step @StepClass(3)">3. Đang nhận xe thuê</div>
+        <div class="rental-step @StepClass(4)">4. Hoàn thành trả xe</div>
+    </div>
+}
+
+<div class="row g-4">
+    <!-- Cột trái: Chi tiết xe & Lịch sử thanh toán -->
+    <div class="col-12 col-lg-8">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white fw-bold py-3">Danh sách xe trong đơn (@r.Details.Count xe)</div>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Xe máy</th>
+                            <th>Đơn giá × Ngày</th>
+                            <th>Số km (Giao → Trả)</th>
+                            <th class="text-end">Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in r.Details)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <img src="@(d.ImageUrl ?? Url.Content("~/images/no-image.svg"))"
+                                             onerror="this.onerror=null;this.src='@Url.Content("~/images/no-image.svg")';"
+                                             style="width:52px;height:38px;object-fit:cover;" class="rounded border" alt="@d.ModelName" />
+                                        <div>
+                                            <a asp-controller="Motorbikes" asp-action="Details" asp-route-id="@d.MotorbikeId" class="fw-semibold text-decoration-none">@d.ModelName</a>
+                                            <div class="small text-muted">@d.LicensePlate · Cọc @DisplayHelper.Money(d.DepositAmount)</div>
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(d.PickupCondition) || !string.IsNullOrWhiteSpace(d.ReturnCondition))
+                                    {
+                                        <div class="small text-muted mt-1">
+                                            @if (!string.IsNullOrWhiteSpace(d.PickupCondition))
+                                            {
+                                                <div>Giao: @d.PickupCondition</div>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(d.ReturnCondition))
+                                            {
+                                                <div>Trả: @d.ReturnCondition</div>
+                                            }
+                                        </div>
+                                    }
+                                </td>
+                                <td class="small text-nowrap">@DisplayHelper.Money(d.PricePerDay) × @d.NumberOfDays ngày</td>
+                                <td class="small text-nowrap">
+                                    @(d.PickupOdometer.HasValue ? $"{d.PickupOdometer:N0} km" : "—")
+                                    →
+                                    @(d.ReturnOdometer.HasValue ? $"{d.ReturnOdometer:N0} km" : "—")
+                                </td>
+                                <td class="text-end fw-semibold text-nowrap">@DisplayHelper.Money(d.LineTotal ?? (d.PricePerDay * d.NumberOfDays))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Lịch sử giao dịch thanh toán -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white fw-bold py-3">Lịch sử thanh toán & Đặt cọc</div>
+            <div class="card-body p-0">
+                @if (!r.Payments.Any())
+                {
+                    <div class="p-3 text-muted small">Chưa có giao dịch thanh toán nào được ghi nhận.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Loại giao dịch</th>
+                                    <th>Phương thức</th>
+                                    <th>Thời gian</th>
+                                    <th>Ghi chú</th>
+                                    <th class="text-end pe-3">Số tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var p in r.Payments)
+                                {
+                                    <tr>
+                                        <td class="ps-3 fw-semibold">@DisplayHelper.PaymentTypeText(p.PaymentType)</td>
+                                        <td class="small">@DisplayHelper.PaymentMethodText(p.PaymentMethod)</td>
+                                        <td class="small text-nowrap">@DisplayHelper.DateTimeText(p.PaidAt)</td>
+                                        <td class="small text-muted">@(p.Note ?? p.TransactionRef ?? "—")</td>
+                                        <td class="text-end pe-3 fw-semibold text-nowrap @(p.PaymentType == PaymentType.Refund ? "text-success" : "")">
+                                            @(p.PaymentType == PaymentType.Refund ? "+" : "")@DisplayHelper.Money(p.Amount)
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Khu vực Đánh giá xe (chỉ mở khi đơn Completed) -->
+        @if (r.Status == RentalStatus.Completed)
+        {
+            <div id="reviews" class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-warning bg-opacity-25 fw-bold py-3">
+                    ⭐ Đánh giá trải nghiệm xe đã thuê
+                </div>
+                <div class="card-body">
+                    @foreach (var d in r.Details)
+                    {
+                        var existing = Model.Reviews.FirstOrDefault(x => x.MotorbikeId == d.MotorbikeId);
+                        <div class="border rounded p-3 mb-3">
+                            <div class="fw-semibold mb-2">@d.ModelName (@d.LicensePlate)</div>
+                            @if (existing != null)
+                            {
+                                <div class="text-warning mb-1">
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        <span>@(i <= existing.Rating ? "★" : "☆")</span>
+                                    }
+                                    <span class="text-success small fw-semibold ms-2">✓ Đã gửi đánh giá (@DisplayHelper.DateTimeText(existing.CreatedAt))</span>
+                                </div>
+                                <div class="small text-dark">@(existing.Comment ?? "Không có nhận xét.")</div>
+                            }
+                            else
+                            {
+                                <form asp-action="Review" method="post" class="row g-2">
+                                    <input type="hidden" name="RentalId" value="@r.RentalId" />
+                                    <input type="hidden" name="MotorbikeId" value="@d.MotorbikeId" />
+                                    <div class="col-12 col-sm-4">
+                                        <label class="form-label small">Mức độ hài lòng</label>
+                                        <select name="Rating" class="form-select form-select-sm" required>
+                                            <option value="5">⭐⭐⭐⭐⭐ (5 - Tuyệt vời)</option>
+                                            <option value="4">⭐⭐⭐⭐ (4 - Tốt)</option>
+                                            <option value="3">⭐⭐⭐ (3 - Bình thường)</option>
+                                            <option value="2">⭐⭐ (2 - Tạm được)</option>
+                                            <option value="1">⭐ (1 - Không hài lòng)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-sm-8">
+                                        <label class="form-label small">Nhận xét của bạn</label>
+                                        <input type="text" name="Comment" maxlength="1000" class="form-control form-control-sm" placeholder="Xe chạy êm, tiết kiệm xăng, nhân viên nhiệt tình..." />
+                                    </div>
+                                    <div class="col-12 text-end">
+                                        <button type="submit" class="btn btn-sm btn-primary">Gửi đánh giá</button>
+                                    </div>
+                                </form>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Cột phải: Thông tin lịch trình, Tổng kết tiền & Huỷ đơn -->
+    <div class="col-12 col-lg-4">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white fw-bold py-3">Thông tin lịch trình & Chi phí</div>
+            <div class="card-body">
+                <div class="mb-2 small">
+                    <span class="text-muted d-block">Thời điểm nhận xe:</span>
+                    <strong>@DisplayHelper.DateTimeText(r.StartDate)</strong>
+                </div>
+                <div class="mb-2 small">
+                    <span class="text-muted d-block">Thời điểm hẹn trả:</span>
+                    <strong>@DisplayHelper.DateTimeText(r.ExpectedReturnDate)</strong>
+                </div>
+                @if (r.ActualReturnDate.HasValue)
+                {
+                    <div class="mb-2 small">
+                        <span class="text-muted d-block">Thời điểm trả thực tế:</span>
+                        <strong class="text-success">@DisplayHelper.DateTimeText(r.ActualReturnDate)</strong>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(r.StaffName))
+                {
+                    <div class="mb-2 small">
+                        <span class="text-muted d-block">Nhân viên phụ trách:</span>
+                        <strong>@r.StaffName</strong>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(r.Note))
+                {
+                    <div class="mb-2 small">
+                        <span class="text-muted d-block">Ghi chú của bạn:</span>
+                        <span>@r.Note</span>
+                    </div>
+                }
+
+                <hr />
+
+                <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-muted">Tiền thuê gốc:</span>
+                    <span>@DisplayHelper.Money(r.SubTotal)</span>
+                </div>
+                @if (r.DiscountAmount > 0)
+                {
+                    <div class="d-flex justify-content-between small mb-1 text-success">
+                        <span>Giảm giá:</span>
+                        <span>-@DisplayHelper.Money(r.DiscountAmount)</span>
+                    </div>
+                }
+                @if (r.LateFee > 0)
+                {
+                    <div class="d-flex justify-content-between small mb-1 text-danger">
+                        <span>Phí trả trễ:</span>
+                        <span>+@DisplayHelper.Money(r.LateFee)</span>
+                    </div>
+                }
+                @if (r.DamageFee > 0)
+                {
+                    <div class="d-flex justify-content-between small mb-1 text-danger">
+                        <span>Phí bồi thường hư hỏng:</span>
+                        <span>+@DisplayHelper.Money(r.DamageFee)</span>
+                    </div>
+                }
+                <div class="d-flex justify-content-between fw-bold fs-5 text-primary border-top pt-2 mt-2">
+                    <span>Tổng cộng:</span>
+                    <span>@DisplayHelper.Money(finalTotal)</span>
+                </div>
+                <div class="d-flex justify-content-between small text-muted mt-1">
+                    <span>Tiền đặt cọc:</span>
+                    <strong>@DisplayHelper.Money(r.DepositAmount)</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Huỷ đơn (chỉ hiện khi Pending hoặc Confirmed) -->
+        @if (r.Status == RentalStatus.Pending || r.Status == RentalStatus.Confirmed)
+        {
+            <div class="card border-danger border-opacity-50 shadow-sm">
+                <div class="card-header bg-danger bg-opacity-10 text-danger fw-bold py-2">
+                    Huỷ đơn đặt thuê
+                </div>
+                <div class="card-body">
+                    <form asp-action="Cancel" asp-route-id="@r.RentalId" method="post"
+                          onsubmit="return confirm('Bạn có chắc chắn muốn huỷ đơn thuê @r.RentalCode không?');">
+                        <div class="mb-2">
+                            <label asp-for="CancelForm.CancelReason" class="form-label small">Lý do huỷ đơn <span class="text-danger">*</span></label>
+                            <textarea asp-for="CancelForm.CancelReason" class="form-control form-control-sm" rows="2" placeholder="VD: Thay đổi kế hoạch chuyến đi..." required minlength="3"></textarea>
+                            <span asp-validation-for="CancelForm.CancelReason" class="text-danger small"></span>
+                        </div>
+                        @if (r.Status == RentalStatus.Confirmed && r.DepositAmount > 0)
+                        {
+                            <div class="mb-2">
+                                <label asp-for="CancelForm.RefundMethod" class="form-label small">Phương thức nhận hoàn cọc</label>
+                                <select asp-for="CancelForm.RefundMethod" class="form-select form-select-sm">
+                                    <option value="Cash">Tiền mặt tại quầy</option>
+                                    <option value="BankTransfer">Chuyển khoản ngân hàng</option>
+                                    <option value="Momo">Ví MoMo</option>
+                                    <option value="VNPay">VNPay</option>
+                                </select>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" asp-for="CancelForm.RefundMethod" value="Cash" />
+                        }
+                        <button type="submit" class="btn btn-outline-danger btn-sm w-100 mt-1">Xác nhận huỷ đơn</button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

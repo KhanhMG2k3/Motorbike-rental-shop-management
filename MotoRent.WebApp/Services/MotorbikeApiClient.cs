@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MotoRent.BusinessObjects.Common;
+using MotoRent.BusinessObjects.DTOs.Branches;
 using MotoRent.BusinessObjects.DTOs.Brands;
 using MotoRent.BusinessObjects.DTOs.Categories;
 using MotoRent.BusinessObjects.DTOs.Motorbikes;
@@ -89,6 +90,20 @@ public class MotorbikeApiClient
 
         var isAvailable = body?.Data?.Any(m => m.MotorbikeId == bike.MotorbikeId) == true;
         return (isAvailable, null);
+    }
+
+    /// <summary>Thông tin chi nhánh (gồm giờ mở cửa) — API công khai /api/lookups/branches.</summary>
+    public async Task<BranchLookupDto?> GetBranchAsync(int branchId)
+    {
+        try
+        {
+            var body = await _http.GetFromJsonAsync<ApiResponse<List<BranchLookupDto>>>("api/lookups/branches", JsonOptions);
+            return body?.Data?.FirstOrDefault(b => b.BranchId == branchId);
+        }
+        catch (HttpRequestException)
+        {
+            return null;   // không lấy được giờ mở cửa thì chỉ ẩn dòng gợi ý, API vẫn kiểm tra khi gửi đơn
+        }
     }
 
     public async Task<List<BrandDto>> GetBrandsAsync()

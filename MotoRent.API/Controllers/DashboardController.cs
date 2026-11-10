@@ -19,11 +19,14 @@ public class DashboardController : ControllerBase
         _dashboardService = dashboardService;
     }
 
-    /// <summary>Số liệu thống kê tổng quan (KPIs: xe, đơn thuê, khách hàng, doanh thu).</summary>
+    /// <summary>
+    /// Số liệu thống kê tổng quan (KPIs: xe, đơn thuê, khách hàng, doanh thu).
+    /// "Doanh thu tháng" lấy theo year/month truyền vào (mặc định: tháng/năm hiện tại).
+    /// </summary>
     [HttpGet("summary")]
-    public async Task<ActionResult<ApiResponse<DashboardSummaryDto>>> GetSummary()
+    public async Task<ActionResult<ApiResponse<DashboardSummaryDto>>> GetSummary([FromQuery] int? year, [FromQuery] int? month)
     {
-        var summary = await _dashboardService.GetSummaryAsync();
+        var summary = await _dashboardService.GetSummaryAsync(year, month);
         return Ok(ApiResponse<DashboardSummaryDto>.Ok(summary));
     }
 

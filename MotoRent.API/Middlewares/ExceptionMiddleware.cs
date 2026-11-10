@@ -39,6 +39,8 @@ public class ExceptionMiddleware
             {
                 NotFoundException => (StatusCodes.Status404NotFound, ex.Message),
                 BusinessException => (StatusCodes.Status400BadRequest, ex.Message),
+                ForbiddenException => (StatusCodes.Status403Forbidden, ex.Message),
+                UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, ex.Message),
                 ConflictException => (StatusCodes.Status409Conflict, ex.Message),
                 DbUpdateException => (StatusCodes.Status409Conflict, "Dữ liệu vi phạm ràng buộc trong cơ sở dữ liệu."),
                 _ => (StatusCodes.Status500InternalServerError, "Đã xảy ra lỗi hệ thống.")

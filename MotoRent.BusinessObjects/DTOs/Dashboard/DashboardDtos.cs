@@ -10,7 +10,11 @@ public class DashboardSummaryDto
     public int TotalStaff { get; set; }
     public int CompletedRentals { get; set; }
     public decimal TotalRevenue { get; set; }
+
+    /// <summary>Doanh thu của tháng được chọn (xem SelectedYear/SelectedMonth); mặc định là tháng hiện tại.</summary>
     public decimal ThisMonthRevenue { get; set; }
+    public int SelectedYear { get; set; }
+    public int SelectedMonth { get; set; }
 }
 
 public class MonthlyRevenueDto

@@ -42,7 +42,7 @@ namespace MotoRent.Services
                 ?? throw new NotFoundException($"Không tìm thấy đơn thuê có Id = {rentalId}.");
             if (currentRole == AppRoles.Customer && currentUserId.HasValue && rental.CustomerId != currentUserId.Value)
             {
-                throw new BusinessException("Bạn không có quyền xem đánh giá của đơn thuê này.");
+                throw new ForbiddenException("Bạn không có quyền xem đánh giá của đơn thuê này.");
             }
             return await _reviewRepo.Query()
                 .Where(r => r.RentalId == rentalId)
@@ -60,7 +60,7 @@ namespace MotoRent.Services
             // 2. BR1: Khách hàng chỉ được đánh giá đơn của chính mình
             if (rental.CustomerId != customerId)
             {
-                throw new BusinessException("Bạn chỉ có thể đánh giá cho đơn thuê của chính mình.");
+                throw new ForbiddenException("Bạn chỉ có thể đánh giá cho đơn thuê của chính mình.");
             }
             // 3. BR2: Đơn thuê bắt buộc phải ở trạng thái Completed
             if (rental.Status != RentalStatus.Completed)

@@ -62,6 +62,8 @@ public class BranchesController : Controller
             Phone = branch.Phone,
             OpenTime = branch.OpenTime,
             CloseTime = branch.CloseTime,
+            Latitude = branch.Latitude,
+            Longitude = branch.Longitude,
             IsActive = branch.IsActive
         });
     }

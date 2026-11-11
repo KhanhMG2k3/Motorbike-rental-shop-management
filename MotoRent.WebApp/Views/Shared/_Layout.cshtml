@@ -25,6 +25,9 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Motorbikes" asp-action="Index">Thuê xe</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Branches" asp-action="Index">Chi nhánh</a>
+                        </li>
                         @if (User.IsInRole(AppRoles.Customer))
                         {
                             <li class="nav-item">

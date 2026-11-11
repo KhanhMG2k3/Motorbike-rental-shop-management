@@ -22,7 +22,10 @@
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="Password" class="form-label">Mật khẩu</label>
+                        <div class="d-flex justify-content-between">
+                            <label asp-for="Password" class="form-label">Mật khẩu</label>
+                            <a asp-action="ForgotPassword" class="small text-decoration-none">Quên mật khẩu?</a>
+                        </div>
                         <input asp-for="Password" type="password" class="form-control" placeholder="••••••••" />
                         <span asp-validation-for="Password" class="text-danger small"></span>
                     </div>

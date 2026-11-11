@@ -20,19 +20,22 @@ public class RentalService : IRentalService
     private readonly IGenericRepository<Rental> _rentalRepo;
     private readonly IGenericRepository<User> _userRepo;
     private readonly IGenericRepository<Branch> _branchRepo;
+    private readonly IEmailService _emailService;
 
     public RentalService(
         MotorbikeRentalContext context,
         IMotorbikeRepository motorbikeRepo,
         IGenericRepository<Rental> rentalRepo,
         IGenericRepository<User> userRepo,
-        IGenericRepository<Branch> branchRepo)
+        IGenericRepository<Branch> branchRepo,
+        IEmailService emailService)
     {
         _context = context;
         _motorbikeRepo = motorbikeRepo;
         _rentalRepo = rentalRepo;
         _userRepo = userRepo;
         _branchRepo = branchRepo;
+        _emailService = emailService;
     }
 
     public async Task<RentalDto> GetByIdAsync(int id, int? currentUserId = null, string? currentRole = null)
@@ -204,6 +207,12 @@ public class RentalService : IRentalService
             throw;
         }
 
+        await _emailService.SendAsync(customer.Email, $"Đơn thuê {rental.RentalCode} đã được tạo",
+            $"<p>Xin chào {customer.FullName},</p>" +
+            $"<p>Đơn thuê <b>{rental.RentalCode}</b> của bạn đã được tạo thành công và đang <b>chờ duyệt</b>.</p>" +
+            $"<p>Tổng tiền thuê (tạm tính): {subTotal:N0} đ. Tiền cọc: {depositAmount:N0} đ.</p>" +
+            "<p>Vui lòng chờ nhân viên duyệt đơn hoặc đến chi nhánh để hoàn tất đặt cọc.</p>");
+
         return (await GetDtoByIdAsync(rental.RentalId))!;
     }
 
@@ -250,6 +259,11 @@ public class RentalService : IRentalService
             await tx.RollbackAsync();
             throw;
         }
+
+        await _emailService.SendAsync(rental.Customer.Email, $"Đơn thuê {rental.RentalCode} đã được duyệt",
+            $"<p>Xin chào {rental.Customer.FullName},</p>" +
+            $"<p>Đơn thuê <b>{rental.RentalCode}</b> của bạn đã được <b>duyệt</b>.</p>" +
+            "<p>Vui lòng đến chi nhánh nhận xe đúng hẹn, mang theo CCCD và Giấy phép lái xe.</p>");
 
         return (await GetDtoByIdAsync(id))!;
     }
@@ -448,6 +462,12 @@ public class RentalService : IRentalService
             await tx.RollbackAsync();
             throw;
         }
+
+        var totalAmount = rental.SubTotal - rental.DiscountAmount + rental.LateFee + rental.DamageFee;
+        await _emailService.SendAsync(rental.Customer.Email, $"Đơn thuê {rental.RentalCode} đã hoàn tất",
+            $"<p>Xin chào {rental.Customer.FullName},</p>" +
+            $"<p>Đơn thuê <b>{rental.RentalCode}</b> đã <b>hoàn tất</b>. Cảm ơn quý khách đã sử dụng dịch vụ MotoRent!</p>" +
+            $"<p>Tổng tiền thuê: {totalAmount:N0} đ (đã gồm phí trễ/hư hỏng nếu có). Tiền cọc đã được hoàn lại.</p>");
 
         return (await GetDtoByIdAsync(id))!;
     }

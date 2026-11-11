@@ -1,0 +1,98 @@
+@model List<BranchDto>
+@{
+    ViewData["Title"] = "Chi nhánh";
+    var branchesWithLocation = Model.Where(b => b.Latitude.HasValue && b.Longitude.HasValue).ToList();
+}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<h1 class="h4 fw-bold mb-3">Hệ thống chi nhánh MotoRent</h1>
+
+@if (ViewData["Error"] != null)
+{
+    <div class="alert alert-danger">@ViewData["Error"]</div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div id="branchMap" style="height: 380px; border-radius: 8px;" class="shadow-sm"></div>
+        @if (!branchesWithLocation.Any())
+        {
+            <p class="small text-muted mt-2">Chưa có chi nhánh nào được gắn toạ độ trên bản đồ.</p>
+        }
+    </div>
+</div>
+
+<div class="row g-3">
+    @foreach (var b in Model)
+    {
+        <div class="col-12 col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h2 class="h6 fw-bold mb-2">@b.BranchName</h2>
+                    <p class="mb-1 small"><strong>Địa chỉ:</strong> @b.Address</p>
+                    <p class="mb-1 small"><strong>Điện thoại:</strong> @b.Phone</p>
+                    <p class="mb-0 small"><strong>Giờ mở cửa:</strong> @b.OpenTime.ToString("HH:mm") – @b.CloseTime.ToString("HH:mm")</p>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var branches = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                branchesWithLocation.Select(b => new { name = b.BranchName, address = b.Address, lat = b.Latitude, lng = b.Longitude })
+            ));
+
+            var defaultCenter = [10.7725, 106.6980]; // TP.HCM
+            var mapEl = document.getElementById('branchMap');
+            var map = L.map(mapEl).setView(defaultCenter, 12);
+
+            // Nền bản đồ chính: OpenStreetMap France. Nếu tải lỗi (mạng chặn) thì tự chuyển sang Esri.
+            var primaryTiles = L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                subdomains: 'abc',
+                maxZoom: 19
+            }).addTo(map);
+
+            var switchedToFallback = false;
+            primaryTiles.on('tileerror', function () {
+                if (switchedToFallback) return;
+                switchedToFallback = true;
+                map.removeLayer(primaryTiles);
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles &copy; Esri',
+                    maxZoom: 19
+                }).addTo(map);
+            });
+
+            var bounds = [];
+            branches.forEach(function (b) {
+                var marker = L.marker([b.lat, b.lng]).addTo(map);
+                marker.bindPopup('<strong>' + b.name + '</strong><br/>' + b.address);
+                bounds.push([b.lat, b.lng]);
+            });
+
+            // Layout Bootstrap đôi khi chưa ổn định lúc trang vừa tải (khung bản đồ đo được rất hẹp hoặc 0px)
+            // -> fitBounds tính sai zoom. Chỉ căn bản đồ khi khung đã có kích thước thật.
+            function fitMap() {
+                if (mapEl.clientWidth < 200 || mapEl.clientHeight < 100) return false;
+                map.invalidateSize();
+                if (bounds.length > 1) {
+                    map.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
+                } else if (bounds.length === 1) {
+                    map.setView(bounds[0], 15);
+                }
+                return true;
+            }
+
+            if (!fitMap() && 'ResizeObserver' in window) {
+                var ro = new ResizeObserver(function () { if (fitMap()) ro.disconnect(); });
+                ro.observe(mapEl);
+            }
+        });
+    </script>
+}

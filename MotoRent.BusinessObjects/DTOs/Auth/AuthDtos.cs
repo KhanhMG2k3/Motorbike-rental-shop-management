@@ -130,6 +130,32 @@ public class UpdateProfileDto : IValidatableObject
     }
 }
 
+public class ForgotPasswordDto
+{
+    [Required(ErrorMessage = "Email không được để trống.")]
+    [EmailAddress(ErrorMessage = "Email không đúng định dạng.")]
+    public string Email { get; set; } = null!;
+}
+
+public class ResetPasswordDto
+{
+    [Required(ErrorMessage = "Email không được để trống.")]
+    [EmailAddress(ErrorMessage = "Email không đúng định dạng.")]
+    public string Email { get; set; } = null!;
+
+    [Required(ErrorMessage = "Vui lòng nhập mã xác nhận đã gửi qua email.")]
+    [StringLength(6, MinimumLength = 6, ErrorMessage = "Mã xác nhận gồm đúng 6 chữ số.")]
+    public string Code { get; set; } = null!;
+
+    [Required(ErrorMessage = "Vui lòng nhập mật khẩu mới.")]
+    [StringLength(100, MinimumLength = 6, ErrorMessage = "Mật khẩu mới tối thiểu 6 ký tự.")]
+    public string NewPassword { get; set; } = null!;
+
+    [Required(ErrorMessage = "Vui lòng xác nhận mật khẩu mới.")]
+    [Compare(nameof(NewPassword), ErrorMessage = "Mật khẩu xác nhận không khớp.")]
+    public string ConfirmNewPassword { get; set; } = null!;
+}
+
 public class ChangePasswordDto
 {
     [Required(ErrorMessage = "Vui lòng nhập mật khẩu hiện tại.")]

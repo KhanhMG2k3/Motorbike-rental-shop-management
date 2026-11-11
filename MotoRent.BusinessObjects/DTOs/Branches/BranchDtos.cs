@@ -10,6 +10,8 @@ public class BranchDto
     public string Phone { get; set; } = null!;
     public TimeOnly OpenTime { get; set; }
     public TimeOnly CloseTime { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public int MotorbikeCount { get; set; }
@@ -35,6 +37,12 @@ public class CreateBranchDto : IValidatableObject
 
     [Required(ErrorMessage = "Giờ đóng cửa không được để trống.")]
     public TimeOnly CloseTime { get; set; } = new(21, 0);
+
+    [Range(-90, 90, ErrorMessage = "Vĩ độ (Latitude) phải trong khoảng -90 đến 90.")]
+    public decimal? Latitude { get; set; }
+
+    [Range(-180, 180, ErrorMessage = "Kinh độ (Longitude) phải trong khoảng -180 đến 180.")]
+    public decimal? Longitude { get; set; }
 
     public virtual IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

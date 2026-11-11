@@ -14,6 +14,8 @@ public static class BranchMappings
         Phone = b.Phone,
         OpenTime = b.OpenTime,
         CloseTime = b.CloseTime,
+        Latitude = b.Latitude,
+        Longitude = b.Longitude,
         IsActive = b.IsActive,
         CreatedAt = b.CreatedAt,
         MotorbikeCount = b.Motorbikes.Count,
@@ -27,6 +29,8 @@ public static class BranchMappings
         Phone = dto.Phone.Trim(),
         OpenTime = dto.OpenTime,
         CloseTime = dto.CloseTime,
+        Latitude = dto.Latitude,
+        Longitude = dto.Longitude,
         IsActive = true,
         CreatedAt = DateTime.Now
     };
@@ -38,6 +42,8 @@ public static class BranchMappings
         entity.Phone = dto.Phone.Trim();
         entity.OpenTime = dto.OpenTime;
         entity.CloseTime = dto.CloseTime;
+        entity.Latitude = dto.Latitude;
+        entity.Longitude = dto.Longitude;
         entity.IsActive = dto.IsActive;
     }
 }

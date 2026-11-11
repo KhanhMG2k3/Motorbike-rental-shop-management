@@ -1,0 +1,100 @@
+@model List<UserDto>
+@{
+    ViewData["Title"] = "Quản lý tài khoản";
+    var filter = (UserFilter)ViewBag.Filter;
+}
+
+<partial name="_AdminNav" />
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">Tài khoản người dùng</h1>
+    <a asp-action="CreateStaff" class="btn btn-primary">+ Tạo tài khoản nhân viên</a>
+</div>
+
+<partial name="_StatusMessage" />
+
+<form method="get" class="card card-body mb-3 bg-light border-0">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label small fw-semibold">Từ khoá</label>
+            <input type="text" name="keyword" value="@filter.Keyword" class="form-control" placeholder="Tên, email, số điện thoại..." />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small fw-semibold">Vai trò</label>
+            <select name="roleId" class="form-select" asp-items="ViewBag.Roles"></select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small fw-semibold">Chi nhánh</label>
+            <select name="branchId" class="form-select" asp-items="ViewBag.Branches">
+                <option value="">Tất cả chi nhánh</option>
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary w-100">Lọc</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">Xoá</a>
+        </div>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Họ và tên</th>
+                <th>Email / SĐT</th>
+                <th>Vai trò</th>
+                <th>Chi nhánh</th>
+                <th>CCCD / GPLX</th>
+                <th>Ngày tạo</th>
+                <th>Trạng thái</th>
+                <th class="text-end">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var u in Model)
+            {
+                <tr class="@(u.IsActive ? "" : "text-muted")">
+                    <td>
+                        <span class="fw-semibold">@u.FullName</span>
+                    </td>
+                    <td>
+                        <div>@u.Email</div>
+                        <div class="small text-muted">@(u.Phone ?? "—")</div>
+                    </td>
+                    <td>
+                        @if (u.RoleId == 1) { <span class="badge bg-danger">Admin</span> }
+                        else if (u.RoleId == 2) { <span class="badge bg-primary">Staff</span> }
+                        else { <span class="badge bg-info text-dark">Customer</span> }
+                    </td>
+                    <td>@(u.BranchName ?? "—")</td>
+                    <td>
+                        <div class="small">CCCD: @(u.IdentityNumber ?? "—")</div>
+                        <div class="small text-muted">GPLX: @(u.DriverLicenseNumber ?? "—")</div>
+                    </td>
+                    <td class="small">@u.CreatedAt.ToString("dd/MM/yyyy")</td>
+                    <td>
+                        @if (u.IsActive) { <span class="badge bg-success">Hoạt động</span> }
+                        else { <span class="badge bg-secondary">Bị khoá</span> }
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <form asp-action="ToggleStatus" asp-route-id="@u.UserId" method="post" class="d-inline"
+                              onsubmit="return confirm('@(u.IsActive ? $"Khoá tài khoản {u.Email}?" : $"Mở khoá tài khoản {u.Email}?")');">
+                            @if (u.IsActive)
+                            {
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Khoá</button>
+                            }
+                            else
+                            {
+                                <button type="submit" class="btn btn-sm btn-outline-success">Mở khoá</button>
+                            }
+                        </form>
+                    </td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td colspan="8" class="text-center text-muted">Không tìm thấy tài khoản phù hợp.</td></tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -22,6 +22,10 @@ GO
 USE MotorbikeRentalDB;
 GO
 
+-- Tắt nhảy cóc +1000 khi restart máy
+ALTER DATABASE SCOPED CONFIGURATION SET IDENTITY_CACHE = OFF;
+GO
+
 /* =====================================================================
    1. BẢNG DANH MỤC / NGƯỜI DÙNG
    ===================================================================== */
@@ -44,6 +48,8 @@ CREATE TABLE Branches (
     Phone       VARCHAR(15)        NOT NULL,
     OpenTime    TIME(0)            NOT NULL CONSTRAINT DF_Branches_OpenTime  DEFAULT ('07:00'),
     CloseTime   TIME(0)            NOT NULL CONSTRAINT DF_Branches_CloseTime DEFAULT ('21:00'),
+    Latitude    DECIMAL(9,6)       NULL, -- toạ độ bản đồ, thêm 06/11/2026 bởi Đạt, optional
+    Longitude   DECIMAL(9,6)       NULL,
     IsActive    BIT                NOT NULL CONSTRAINT DF_Branches_IsActive  DEFAULT (1),
     CreatedAt   DATETIME2(0)       NOT NULL CONSTRAINT DF_Branches_CreatedAt DEFAULT (SYSDATETIME()),
     CONSTRAINT PK_Branches PRIMARY KEY (BranchId),
@@ -97,6 +103,19 @@ CREATE TABLE RefreshTokens (
     CONSTRAINT UQ_RefreshTokens_Token UNIQUE (Token),
     CONSTRAINT FK_RefreshTokens_Users FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE,
     CONSTRAINT CK_RefreshTokens_Expires CHECK (ExpiresAt > CreatedAt)
+);
+GO
+
+-- 1.4b Mã đặt lại mật khẩu (Quên mật khẩu) - thêm 06/11/2026 bởi Đạt
+CREATE TABLE PasswordResetTokens (
+    ResetTokenId INT IDENTITY(1,1) NOT NULL,
+    UserId       INT               NOT NULL,
+    CodeHash     VARCHAR(100)      NOT NULL,
+    ExpiresAt    DATETIME2(0)      NOT NULL,
+    CreatedAt    DATETIME2(0)      NOT NULL CONSTRAINT DF_PasswordResetTokens_CreatedAt DEFAULT (SYSDATETIME()),
+    UsedAt       DATETIME2(0)      NULL,
+    CONSTRAINT PK_PasswordResetTokens PRIMARY KEY (ResetTokenId),
+    CONSTRAINT FK_PasswordResetTokens_Users FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE
 );
 GO
 
@@ -356,9 +375,9 @@ SET IDENTITY_INSERT Roles OFF;
 GO
 
 SET IDENTITY_INSERT Branches ON;
-INSERT INTO Branches (BranchId, BranchName, Address, Phone, OpenTime, CloseTime) VALUES
-(1, N'MotoRent Quận 1',   N'123 Lê Lợi, Phường Bến Thành, Quận 1, TP.HCM',       '0281234567', '07:00', '21:00'),
-(2, N'MotoRent Thủ Đức',  N'45 Võ Văn Ngân, Phường Linh Chiểu, TP. Thủ Đức, TP.HCM', '0287654321', '07:30', '20:30');
+INSERT INTO Branches (BranchId, BranchName, Address, Phone, OpenTime, CloseTime, Latitude, Longitude) VALUES
+(1, N'MotoRent Quận 1',   N'123 Lê Lợi, Phường Bến Thành, Quận 1, TP.HCM',       '0281234567', '07:00', '21:00', 10.772500, 106.698000),
+(2, N'MotoRent Thủ Đức',  N'45 Võ Văn Ngân, Phường Linh Chiểu, TP. Thủ Đức, TP.HCM', '0287654321', '07:30', '20:30', 10.850500, 106.771700);
 SET IDENTITY_INSERT Branches OFF;
 GO
 

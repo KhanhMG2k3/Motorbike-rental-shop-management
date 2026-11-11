@@ -1,0 +1,84 @@
+@model UpdateProfileDto
+@{
+    ViewData["Title"] = "Hồ sơ cá nhân";
+    var userProfile = (UserProfileDto)ViewBag.UserProfile;
+}
+
+<div class="row justify-content-center mt-3">
+    <div class="col-12 col-md-8 col-lg-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                    <h2 class="h4 fw-bold mb-0">Hồ sơ cá nhân</h2>
+                    <a asp-action="ChangePassword" class="btn btn-sm btn-outline-secondary">Đổi mật khẩu</a>
+                </div>
+
+                <partial name="_StatusMessage" />
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+
+                <div class="bg-light p-3 rounded mb-3">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="small text-muted">Email đăng nhập</div>
+                            <div class="fw-semibold">@userProfile.Email</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="small text-muted">Vai trò tài khoản</div>
+                            <div>
+                                @if (userProfile.RoleId == 1) { <span class="badge bg-danger">Quản trị viên (Admin)</span> }
+                                else if (userProfile.RoleId == 2) { <span class="badge bg-primary">Nhân viên (Staff - @userProfile.BranchName)</span> }
+                                else { <span class="badge bg-info text-dark">Khách hàng (Customer)</span> }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <form asp-action="Profile" method="post">
+                    <div class="mb-3">
+                        <label asp-for="FullName" class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                        <input asp-for="FullName" class="form-control" />
+                        <span asp-validation-for="FullName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Phone" class="form-label">Số điện thoại</label>
+                            <input asp-for="Phone" class="form-control" placeholder="0901234567" />
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="DateOfBirth" class="form-label">Ngày sinh (từ đủ 18 tuổi)</label>
+                            <input asp-for="DateOfBirth" type="date" class="form-control" />
+                            <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="IdentityNumber" class="form-label">Số CCCD (12 số)</label>
+                            <input asp-for="IdentityNumber" class="form-control" maxlength="12" placeholder="079..." />
+                            <span asp-validation-for="IdentityNumber" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="DriverLicenseNumber" class="form-label">Số giấy phép lái xe</label>
+                            <input asp-for="DriverLicenseNumber" class="form-control" placeholder="Bắt buộc khi nhận xe" />
+                            <span asp-validation-for="DriverLicenseNumber" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Address" class="form-label">Địa chỉ</label>
+                        <input asp-for="Address" class="form-control" />
+                        <span asp-validation-for="Address" class="text-danger small"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary px-4 fw-semibold">Lưu thay đổi</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

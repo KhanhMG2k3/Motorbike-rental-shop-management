@@ -1,0 +1,19 @@
+@model CreateBrandDto
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+
+<div class="mb-3">
+    <label asp-for="BrandName" class="form-label">Tên hãng <span class="text-danger">*</span></label>
+    <input asp-for="BrandName" class="form-control" maxlength="50" />
+    <span asp-validation-for="BrandName" class="text-danger small"></span>
+</div>
+<div class="mb-3">
+    <label asp-for="Country" class="form-label">Quốc gia</label>
+    <input asp-for="Country" class="form-control" maxlength="50" />
+    <span asp-validation-for="Country" class="text-danger small"></span>
+</div>
+<div class="mb-3">
+    <label asp-for="LogoUrl" class="form-label">Đường dẫn logo</label>
+    <input asp-for="LogoUrl" class="form-control" placeholder="https://..." />
+    <span asp-validation-for="LogoUrl" class="text-danger small"></span>
+</div>

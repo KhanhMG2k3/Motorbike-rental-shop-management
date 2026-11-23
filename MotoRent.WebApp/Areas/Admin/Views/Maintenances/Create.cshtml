@@ -1,0 +1,27 @@
+@model MaintenanceFormViewModel
+@{
+    ViewData["Title"] = "Lên lịch bảo dưỡng";
+}
+
+<partial name="_AdminNav" />
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <h1 class="h4 mb-3">Lên lịch bảo dưỡng</h1>
+        <form asp-action="Create" method="post" class="card card-body">
+            <partial name="_MaintenanceForm" model="Model" />
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary">Lưu phiếu</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Huỷ</a>
+            </div>
+            <p class="small text-muted mt-2 mb-0">
+                Phiếu mới ở trạng thái <strong>Chờ bảo dưỡng</strong>. Khi bấm <strong>Bắt đầu</strong>, xe sẽ chuyển sang
+                "Đang bảo dưỡng" và tạm ngừng cho thuê.
+            </p>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

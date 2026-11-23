@@ -1,0 +1,21 @@
+@model MotorbikeFormViewModel
+@{
+    ViewData["Title"] = "Thêm xe";
+}
+
+<partial name="_AdminNav" />
+
+<h1 class="h4 mb-3">Thêm xe mới</h1>
+
+<form asp-action="Create" method="post" class="card card-body">
+    <partial name="_MotorbikeForm" model="Model" />
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary">Lưu xe</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Huỷ</a>
+    </div>
+    <p class="text-muted small mt-2 mb-0">Sau khi lưu, bạn sẽ được chuyển sang trang sửa để tải ảnh xe lên.</p>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

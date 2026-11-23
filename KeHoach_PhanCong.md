@@ -1,4 +1,4 @@
-﻿# Kế hoạch dự án PRN232 – Quản lý cửa hàng cho thuê xe máy (MotoRent)
+# Kế hoạch dự án PRN232 – Quản lý cửa hàng cho thuê xe máy (MotoRent)
 
 > Nhóm 3 dev · Còn lại: **Tuần 5 → Tuần 9** (5 tuần, 05/10 – 08/11/2026) · Cập nhật: 04/10/2026
 
@@ -11,7 +11,7 @@
 | Backend | ASP.NET Core **Web API** (.NET 8), EF Core 8 (Database-First), SQL Server |
 | Bảo mật API | **JWT Bearer** + `[Authorize(Roles = "...")]` (Admin / Staff / Customer) |
 | Tìm kiếm | **OData** (`Microsoft.AspNetCore.OData`) cho Motorbikes, Rentals |
-| Validation | DataAnnotations hoặc FluentValidation trên **DTO**; AutoMapper Entity ↔ DTO |
+| Validation | DataAnnotations trên **DTO**; map Entity ↔ DTO thủ công (không dùng AutoMapper: bản miễn phí có lỗ hổng bảo mật, bản vá phải trả phí) |
 | Frontend | ASP.NET Core **MVC** + Bootstrap 5 (responsive), **TagHelper, PartialView, ViewComponent** |
 | Gọi API | `IHttpClientFactory` + typed client `ApiClient` tự gắn JWT |
 | Phân quyền WebApp | **Cookie Authentication + ClaimsIdentity** (đọc role từ JWT) → `[Authorize(Roles=...)]` |
@@ -39,7 +39,7 @@
 MotoRent.sln
 ├── MotoRent.BusinessObjects   // Entities (scaffold), DTOs, Enums, Constants
 ├── MotoRent.DataAccess        // MotorbikeRentalContext, Repositories (IRepository<T>, UnitOfWork tuỳ chọn)
-├── MotoRent.Services          // Business logic: AuthService, RentalService, ... + Validators + AutoMapper Profiles
+├── MotoRent.Services          // Business logic: AuthService, RentalService, ... + Mappings (map thủ công)
 ├── MotoRent.API               // Controllers, OData, JWT, Swagger, Middleware xử lý lỗi
 └── MotoRent.WebApp            // MVC: Controllers, Views, Partial, ViewComponents, ApiClient
 ```
@@ -98,7 +98,7 @@ Nguyên tắc: **mỗi người sở hữu module từ đầu đến cuối (API
 
 | Module | Việc cụ thể |
 |---|---|
-| Setup | Tạo solution 5 project, scaffold DbContext, DI, AutoMapper, Swagger + JWT, `ApiResponse`, `ExceptionMiddleware`, `CLAUDE.md` |
+| Setup | Tạo solution 5 project, scaffold DbContext, DI, Swagger + JWT, `ApiResponse`, `ExceptionMiddleware`, `CLAUDE.md` |
 | Auth & Users | Register/Login/Me/ChangePassword, JWT + role claims, Admin quản lý tài khoản |
 | WebApp Auth | Trang Login/Register/Profile, Cookie Auth lưu JWT, `ApiClient` (DelegatingHandler gắn Bearer token), xử lý 401 → về Login |
 | Branches | CRUD API + trang Admin |
@@ -118,7 +118,7 @@ Nguyên tắc: **mỗi người sở hữu module từ đầu đến cuối (API
 | WebApp Motorbikes | Trang danh sách xe (lọc: hãng, loại, giá, chi nhánh → gọi OData), phân trang, trang chi tiết xe |
 | Maintenance | API + trang quản lý bảo dưỡng (Staff/Admin) |
 
-**Kỹ năng cần nắm:** OData query options, FluentValidation/DataAnnotations, AutoMapper, LINQ.
+**Kỹ năng cần nắm:** OData query options, DataAnnotations, map DTO thủ công, LINQ.
 
 ### 👤 Dev 3 – Rental Workflow & Frontend Lead
 **Trách nhiệm chung:** giao diện chung (Layout, Bootstrap responsive, TagHelper, Partial/ViewComponent), báo cáo & chụp màn hình.
@@ -148,6 +148,31 @@ Nguyên tắc: **mỗi người sở hữu module từ đầu đến cuối (API
 | 7 | 19/10 – 25/10 | **Feature complete** |
 | 8 | 26/10 – 01/11 | Test, sửa lỗi, **code freeze** cuối tuần |
 | 9 | 02/11 – 08/11 | Báo cáo, slide, demo |
+
+### ✅ Tiến độ thực tế (cập nhật 29/10)
+| Việc | Người làm | Trạng thái |
+|---|---|---|
+| Khung solution 5 project, scaffold DbContext, Swagger, `ApiResponse`, `ExceptionMiddleware`, `CLAUDE.md`, README | Đạt (Dev 2) làm thay Dev 1 | ✅ Xong – nhánh `develop` |
+| CRUD Brands, Categories, Motorbikes (DTO + Validation + Service + API) | Đạt (Dev 2) | ✅ Xong |
+| OData `/odata/Motorbikes`, `/odata/Rentals`, API xe trống `/api/motorbikes/available` | Đạt (Dev 2) | ✅ Xong |
+| WebApp: danh sách xe (lọc, sắp xếp, phân trang), chi tiết xe + kiểm tra lịch trống, partial `_MotorbikeCard`, `_Pagination` | Đạt (Dev 2) | ✅ Xong |
+| **Tuần 7:** API + trang quản trị bảo dưỡng (lên lịch → bắt đầu → hoàn thành / huỷ) | Đạt (Dev 2) | ✅ Xong – nhánh `feature/dev2-admin-maintenance` |
+| **Tuần 7:** Trang Admin quản lý xe (thêm / sửa / ngừng / mở lại, upload ảnh, đổi trạng thái), hãng xe, loại xe | Đạt (Dev 2) | ✅ Xong |
+| **Tuần 7–8:** Postman collection 57 request / 92 assertion (test validate 400, 404, 409, OData) + bảng test case `docs/TestCases_Dev2.md` | Đạt (Dev 2) | ✅ Xong |
+| TagHelper `<status-badge>`, partial `_StatusMessage`, `_AdminNav`, form partial | Đạt (Dev 2) | ✅ Xong (Dev 3 dùng lại, thêm `kind="rental"`) |
+| **Dev 1:** JWT, BCrypt, Auth API (Login/Register/Me/ChangePassword) & WebApp Auth (Cookie, BearerTokenHandler) | Dev 1 | ✅ Xong – nhánh `feature/dev1` |
+| **Dev 1:** CRUD Branches (Chi nhánh) API + Admin WebApp | Dev 1 | ✅ Xong – nhánh `feature/dev1` |
+| **Dev 1:** Quản lý tài khoản Users & nhân viên API + Admin WebApp | Dev 1 | ✅ Xong – nhánh `feature/dev1` |
+| **Dev 1:** Dashboard thống kê KPI & doanh thu Chart.js API + Admin WebApp | Dev 1 | ✅ Xong – nhánh `feature/dev1` |
+| **Dev 1:** Postman collection 34 request / 68 assertion + bảng test case `docs/TestCases_Dev1.md` | Dev 1 | ✅ Xong – nhánh `feature/dev1` |
+| **Dev 1:** Gắn `[Authorize]` trên toàn bộ API và Admin WebApp | Dev 1 | ✅ Xong – nhánh `feature/dev1` |
+| **Dev 3:** Rentals API (tạo / duyệt / giao / trả / huỷ, phí trễ) + Reviews API | Dev 3 | ✅ Xong – nhánh `feature/rentals` |
+| **Dev 3:** WebApp đặt xe, "Đơn thuê của tôi", quản lý đơn cho Staff (giao / trả / hoá đơn), gửi đánh giá | Dev 3 | ✅ Xong – nhánh `feature/rentals` |
+| **Dev 1:** Payments API + UI (tra cứu, lọc, tổng đã thu / hoàn / doanh thu, xác nhận / huỷ khoản chờ, lịch sử của khách) | Gộp bởi Đạt | ✅ Xong (29/10) – nhánh `feature/hoan-thien-payments-br12` |
+| **Dev 3:** Quy tắc giờ mở cửa chi nhánh (BR12) khi đặt xe + gợi ý trên form | Gộp bởi Đạt | ✅ Xong (29/10) |
+| Sửa bảo mật `ReviewsController` (bắt buộc đăng nhập, bỏ "tạm coi là user 1"), mã **403** khi truy cập đơn của người khác | Gộp bởi Đạt | ✅ Xong (29/10) |
+| Kịch bản kiểm thử end-to-end 73 kiểm tra `docs/e2e/rental-flow.e2e.js` + bảng test case `docs/TestCases_Rentals_Payments.md` | Gộp bởi Đạt | ✅ Xong (29/10) |
+| **Việc còn mở:** Refresh token (tuỳ chọn, chưa làm) · Admin có được giao / trả xe không (hiện chỉ Staff) · báo cáo + slide + demo (tuần 9) | Cả nhóm | ⏳ |
 
 ### Tuần 5 – Nền móng + Auth + CRUD *(gánh thêm phần tuần 4)*
 | Ai | Ngày 1–2 (T2–T3) | Ngày 3–7 |

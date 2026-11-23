@@ -1,0 +1,308 @@
+﻿@model StaffReturnViewModel
+@{
+    var r = Model.Rental;
+    ViewData["Title"] = $"Nhận trả xe & Quyết toán – {r.RentalCode}";
+    decimal totalDayPrice = r.Details.Sum(x => x.PricePerDay);
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+}
+
+<partial name="_AdminNav" />
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Đơn thuê xe</a></li>
+        <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@r.RentalId">@r.RentalCode</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Nhận trả xe & Quyết toán</li>
+    </ol>
+</nav>
+
+<partial name="_StatusMessage" />
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h1 class="h4 mb-0">🏁 Nhận trả xe & Quyết toán hợp đồng</h1>
+        <small class="text-muted">Đơn thuê <strong>@r.RentalCode</strong> · Khách hàng: <strong>@r.CustomerName</strong> (@(r.CustomerPhone ?? r.CustomerEmail))</small>
+    </div>
+    <a asp-action="Details" asp-route-id="@r.RentalId" class="btn btn-outline-secondary btn-sm">← Quay lại chi tiết đơn</a>
+</div>
+
+<form asp-action="Return" asp-route-id="@r.RentalId" method="post">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+
+    <div class="row g-4">
+        <!-- Cột trái: Kiểm tra từng xe & Nhập thông số trả xe -->
+        <div class="col-12 col-lg-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white fw-bold py-3">1. Kiểm tra xe & Số công-tơ-mét lúc trả (@r.Details.Count xe)</div>
+                <div class="card-body">
+                    @for (int i = 0; i < r.Details.Count; i++)
+                    {
+                        var d = r.Details[i];
+                        int pickupKm = d.PickupOdometer ?? 0;
+
+                        <div class="border rounded p-3 @(i < r.Details.Count - 1 ? "mb-3" : "") bg-light bg-opacity-50">
+                            <input type="hidden" asp-for="Form.Items[i].MotorbikeId" />
+
+                            <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+                                <div class="d-flex align-items-center gap-3">
+                                    <img src="@(d.ImageUrl ?? Url.Content("~/images/no-image.svg"))"
+                                         onerror="this.onerror=null;this.src='@Url.Content("~/images/no-image.svg")';"
+                                         style="width:64px;height:44px;object-fit:cover;" class="rounded border bg-white" alt="@d.ModelName" />
+                                    <div>
+                                        <div class="fw-bold">@d.ModelName (@d.LicensePlate)</div>
+                                        <div class="small text-muted">
+                                            Lúc giao: <strong>@pickupKm.ToString("N0") km</strong>
+                                            @if (!string.IsNullOrWhiteSpace(d.PickupCondition))
+                                            {
+                                                <span> · <em>"@d.PickupCondition"</em></span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="badge bg-info text-dark km-diff-badge" id="kmDiff_@i">Quãng đường: 0 km</span>
+                            </div>
+
+                            <div class="row g-3 mt-1">
+                                <div class="col-12 col-md-4">
+                                    <label asp-for="Form.Items[i].ReturnOdometer" class="form-label small fw-semibold">
+                                        Số km lúc trả <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input asp-for="Form.Items[i].ReturnOdometer"
+                                               type="number"
+                                               min="@pickupKm"
+                                               max="1000000"
+                                               class="form-control return-km-input"
+                                               data-index="@i"
+                                               data-pickup-km="@pickupKm"
+                                               required />
+                                        <span class="input-group-text">km</span>
+                                    </div>
+                                    <span asp-validation-for="Form.Items[i].ReturnOdometer" class="text-danger small"></span>
+                                </div>
+
+                                <div class="col-12 col-md-8">
+                                    <label asp-for="Form.Items[i].ReturnCondition" class="form-label small fw-semibold">
+                                        Tình trạng xe khi nhận lại
+                                    </label>
+                                    <input asp-for="Form.Items[i].ReturnCondition" class="form-control" maxlength="500"
+                                           placeholder="VD: Xe nguyên vẹn, sạch sẽ / Trầy ốp sườn phải..." />
+                                    <span asp-validation-for="Form.Items[i].ReturnCondition" class="text-danger small"></span>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        <input asp-for="Form.Items[i].IsDamaged" class="form-check-input" />
+                                        <label asp-for="Form.Items[i].IsDamaged" class="form-check-label small text-danger fw-semibold">
+                                            Xe có hư hỏng cần sửa chữa (Tự động chuyển trạng thái xe sang "Đang bảo dưỡng" sau khi nhận trả)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white fw-bold py-3">2. Thời điểm trả thực tế, Phụ phí & Phương thức thanh toán</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label asp-for="Form.ActualReturnDate" class="form-label fw-semibold small">
+                                Thời điểm trả xe thực tế <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Form.ActualReturnDate"
+                                   asp-format="{0:yyyy-MM-ddTHH:mm}"
+                                   type="datetime-local"
+                                   class="form-control"
+                                   id="actualReturnInput"
+                                   required />
+                            <div class="form-text">
+                                Nhận xe: <strong>@DisplayHelper.DateTimeText(r.StartDate)</strong> · Hẹn trả: <strong>@DisplayHelper.DateTimeText(r.ExpectedReturnDate)</strong>
+                            </div>
+                            <span asp-validation-for="Form.ActualReturnDate" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="Form.PaymentMethod" class="form-label fw-semibold small">
+                                Phương thức thanh toán / hoàn cọc <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="Form.PaymentMethod" asp-items="AdminRentalListViewModel.PaymentMethodOptions()" class="form-select"></select>
+                            <span asp-validation-for="Form.PaymentMethod" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="Form.DamageFee" class="form-label fw-semibold small">Phí bồi thường hư hỏng (đ)</label>
+                            <input asp-for="Form.DamageFee" type="number" min="0" max="100000000" step="1000" class="form-control" id="damageFeeInput" />
+                            <span asp-validation-for="Form.DamageFee" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="Form.DiscountAmount" class="form-label fw-semibold small">Giảm giá / Khuyến mãi (đ)</label>
+                            <input asp-for="Form.DiscountAmount" type="number" min="0" max="@r.SubTotal.ToString(inv)" step="1000" class="form-control" id="discountInput" />
+                            <div class="form-text">Tối đa không vượt quá tiền thuê gốc (@DisplayHelper.Money(r.SubTotal))</div>
+                            <span asp-validation-for="Form.DiscountAmount" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cột phải: Bảng tính nhẩm quyết toán Real-time -->
+        <div class="col-12 col-lg-4">
+            <div class="card shadow-sm border-primary position-sticky" style="top: 1rem;">
+                <div class="card-header bg-primary text-white fw-bold py-3">
+                    💰 Bảng tạm tính quyết toán
+                </div>
+                <div class="card-body">
+                    <div class="small mb-2 p-2 rounded bg-light border" id="lateNoteBox">
+                        Đang kiểm tra thời gian trả xe...
+                    </div>
+
+                    <div class="d-flex justify-content-between small mb-2">
+                        <span class="text-muted">Tiền thuê gốc:</span>
+                        <span class="fw-semibold">@DisplayHelper.Money(r.SubTotal)</span>
+                    </div>
+                    <div class="d-flex justify-content-between small mb-2 text-success">
+                        <span>Giảm giá:</span>
+                        <span id="previewDiscount">-0 đ</span>
+                    </div>
+                    <div class="d-flex justify-content-between small mb-2 text-danger">
+                        <span>Phí trả trễ (tự động):</span>
+                        <span id="previewLateFee">+0 đ</span>
+                    </div>
+                    <div class="d-flex justify-content-between small mb-2 text-danger">
+                        <span>Phí bồi thường hư hỏng:</span>
+                        <span id="previewDamageFee">+0 đ</span>
+                    </div>
+
+                    <hr />
+
+                    <div class="d-flex justify-content-between fw-bold fs-5 text-primary mb-2">
+                        <span>Tổng chi phí đơn:</span>
+                        <span id="previewFinalTotal">@DisplayHelper.Money(r.SubTotal)</span>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted mb-3">
+                        <span>Tiền cọc khách đã đóng:</span>
+                        <strong>@DisplayHelper.Money(r.DepositAmount)</strong>
+                    </div>
+
+                    <div id="netSettlementBox" class="alert alert-success py-2 px-3 mb-3">
+                        <div class="small" id="netSettlementLabel">Hoàn trả lại cho khách (sau khấu trừ):</div>
+                        <div class="fs-5 fw-bold" id="netSettlementAmount">0 đ</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100 py-2 fw-bold"
+                            onclick="return confirm('Xác nhận hoàn tất nhận xe và xuất hoá đơn quyết toán cho đơn @r.RentalCode?');">
+                        ✅ Hoàn tất & Xuất hoá đơn quyết toán
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const subTotal = Number('@r.SubTotal.ToString(inv)');
+            const depositAmount = Number('@r.DepositAmount.ToString(inv)');
+            const totalDayPrice = Number('@totalDayPrice.ToString(inv)');
+            const startDate = new Date('@r.StartDate.ToString("yyyy-MM-ddTHH:mm:ss")');
+            const expectedReturn = new Date('@r.ExpectedReturnDate.ToString("yyyy-MM-ddTHH:mm:ss")');
+
+            const actualInput = document.getElementById('actualReturnInput');
+            const damageInput = document.getElementById('damageFeeInput');
+            const discountInput = document.getElementById('discountInput');
+
+            const fmtMoney = (n) => Math.round(n).toLocaleString('vi-VN') + ' đ';
+
+            function updateSettlement() {
+                let lateFee = 0;
+                let lateNote = '✓ Trả xe đúng hạn (Không phát sinh phí trễ)';
+                const lateNoteBox = document.getElementById('lateNoteBox');
+
+                if (actualInput && actualInput.value) {
+                    const actual = new Date(actualInput.value);
+                    if (actual < startDate) {
+                        lateNote = '⚠️ Thời điểm trả thực tế không được nhỏ hơn lúc nhận xe!';
+                        lateNoteBox.className = 'small mb-2 p-2 rounded bg-danger bg-opacity-10 text-danger border border-danger';
+                    } else if (actual > expectedReturn) {
+                        const lateHours = (actual.getTime() - expectedReturn.getTime()) / (1000 * 60 * 60);
+                        if (lateHours <= 1.0) {
+                            lateFee = 0;
+                            lateNote = '⏱️ Trễ ' + lateHours.toFixed(1) + ' giờ (≤ 1h: Miễn phí trễ hạn)';
+                            lateNoteBox.className = 'small mb-2 p-2 rounded bg-info bg-opacity-10 text-dark border';
+                        } else if (lateHours <= 6.0) {
+                            const chargedHours = Math.ceil(lateHours - 1.0);
+                            lateFee = totalDayPrice * 0.10 * chargedHours;
+                            lateNote = '⏰ Trễ ' + lateHours.toFixed(1) + ' giờ → Tính ' + chargedHours + 'h × 10% giá/ngày';
+                            lateNoteBox.className = 'small mb-2 p-2 rounded bg-warning bg-opacity-25 text-dark border border-warning';
+                        } else {
+                            lateFee = totalDayPrice;
+                            lateNote = '⏰ Trễ ' + lateHours.toFixed(1) + ' giờ (> 6h) → Tính thêm trọn 1 ngày thuê';
+                            lateNoteBox.className = 'small mb-2 p-2 rounded bg-warning bg-opacity-25 text-dark border border-warning';
+                        }
+                    } else {
+                        lateNoteBox.className = 'small mb-2 p-2 rounded bg-light text-success border';
+                    }
+                    lateNoteBox.textContent = lateNote;
+                }
+
+                const damageFee = Math.max(0, Number(damageInput?.value) || 0);
+                const discount = Math.max(0, Number(discountInput?.value) || 0);
+                const finalTotal = (subTotal - discount) + lateFee + damageFee;
+                const diff = finalTotal - depositAmount;
+
+                document.getElementById('previewDiscount').textContent = '-' + fmtMoney(discount);
+                document.getElementById('previewLateFee').textContent = '+' + fmtMoney(lateFee);
+                document.getElementById('previewDamageFee').textContent = '+' + fmtMoney(damageFee);
+                document.getElementById('previewFinalTotal').textContent = fmtMoney(finalTotal);
+
+                const netBox = document.getElementById('netSettlementBox');
+                const netLabel = document.getElementById('netSettlementLabel');
+                const netAmount = document.getElementById('netSettlementAmount');
+
+                if (diff < 0) {
+                    netBox.className = 'alert alert-success py-2 px-3 mb-3';
+                    netLabel.textContent = 'Hoàn trả lại ròng cho khách (Cọc - Chi phí):';
+                    netAmount.textContent = fmtMoney(Math.abs(diff));
+                } else if (diff > 0) {
+                    netBox.className = 'alert alert-warning py-2 px-3 mb-3';
+                    netLabel.textContent = 'Thu thêm từ khách tại quầy (Chi phí - Cọc):';
+                    netAmount.textContent = fmtMoney(diff);
+                } else {
+                    netBox.className = 'alert alert-info py-2 px-3 mb-3';
+                    netLabel.textContent = 'Khấu trừ vừa đủ tiền cọc:';
+                    netAmount.textContent = '0 đ';
+                }
+            }
+
+            function updateKmBadges() {
+                document.querySelectorAll('.return-km-input').forEach(inp => {
+                    const idx = inp.dataset.index;
+                    const pickupKm = Number(inp.dataset.pickupKm) || 0;
+                    const returnKm = Number(inp.value) || 0;
+                    const badge = document.getElementById('kmDiff_' + idx);
+                    if (!badge) return;
+
+                    if (returnKm < pickupKm) {
+                        badge.className = 'badge bg-danger km-diff-badge';
+                        badge.textContent = '⚠️ Nhỏ hơn số km lúc giao!';
+                    } else {
+                        badge.className = 'badge bg-info text-dark km-diff-badge';
+                        badge.textContent = 'Quãng đường: +' + (returnKm - pickupKm).toLocaleString('vi-VN') + ' km';
+                    }
+                });
+            }
+
+            [actualInput, damageInput, discountInput].forEach(el => el && el.addEventListener('input', updateSettlement));
+            document.querySelectorAll('.return-km-input').forEach(el => el.addEventListener('input', updateKmBadges));
+
+            updateSettlement();
+            updateKmBadges();
+        })();
+    </script>
+}

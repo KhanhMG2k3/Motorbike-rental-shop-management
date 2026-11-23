@@ -1,0 +1,186 @@
+﻿@model AdminRentalListViewModel
+@{
+    ViewData["Title"] = "Quản lý đơn thuê xe";
+    var f = Model.Filter;
+    bool isStaff = User.IsInRole(AppRoles.Staff);
+
+    var routeValues = new Dictionary<string, string>();
+    if (!string.IsNullOrWhiteSpace(f.Keyword)) routeValues["keyword"] = f.Keyword;
+    if (!string.IsNullOrEmpty(f.Status)) routeValues["status"] = f.Status;
+    if (f.BranchId.HasValue) routeValues["branchId"] = f.BranchId.Value.ToString();
+
+    var pagination = new PaginationViewModel
+    {
+        Page = f.Page,
+        TotalPages = Model.TotalPages,
+        Controller = "Rentals",
+        Action = "Index",
+        RouteValues = routeValues
+    };
+
+    var quickTabs = new (string Label, string? Status, string BadgeCss)[]
+    {
+        ("Tất cả đơn", null, ""),
+        ("Chờ duyệt", RentalStatus.Pending, "text-warning-emphasis"),
+        ("Chờ bàn giao xe", RentalStatus.Confirmed, "text-info-emphasis"),
+        ("Đang thuê", RentalStatus.Renting, "text-primary"),
+        ("Hoàn thành", RentalStatus.Completed, "text-success"),
+        ("Đã huỷ", RentalStatus.Cancelled, "text-secondary")
+    };
+}
+
+<partial name="_AdminNav" />
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h1 class="h4 mb-0">Quản lý đơn thuê xe</h1>
+        <small class="text-muted">Tổng cộng @Model.TotalCount đơn thuê phù hợp</small>
+    </div>
+</div>
+
+<partial name="_StatusMessage" />
+@if (Model.ErrorMessage != null)
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<!-- Các tab lọc nhanh theo luồng xử lý của Staff -->
+<ul class="nav nav-tabs mb-3">
+    @foreach (var tab in quickTabs)
+    {
+        bool active = string.IsNullOrEmpty(tab.Status)
+        ? string.IsNullOrEmpty(f.Status)
+        : f.Status == tab.Status;
+        <li class="nav-item">
+            <a class="nav-link @(active ? "active fw-bold" : tab.BadgeCss)"
+               asp-action="Index"
+               asp-route-status="@tab.Status"
+               asp-route-keyword="@f.Keyword"
+               asp-route-branchId="@f.BranchId">
+                @tab.Label
+            </a>
+        </li>
+    }
+</ul>
+
+<!-- Thanh tìm kiếm OData -->
+<form method="get" asp-action="Index" class="row g-2 mb-3">
+    <div class="col-12 col-md-4">
+        <input name="keyword" value="@f.Keyword" class="form-control" placeholder="Tìm mã đơn (RNT-...), tên hoặc SĐT khách..." />
+    </div>
+    <div class="col-6 col-md-3">
+        <select name="status" class="form-select">
+            <option value="">Mọi trạng thái</option>
+            @foreach (var opt in AdminRentalListViewModel.StatusOptions())
+            {
+                <option value="@opt.Value" selected="@(opt.Value == f.Status)">@opt.Text</option>
+            }
+        </select>
+    </div>
+    <div class="col-6 col-md-3">
+        <select name="branchId" class="form-select">
+            <option value="">Mọi chi nhánh</option>
+            @foreach (var opt in Model.BranchOptions)
+            {
+                <option value="@opt.Value" selected="@(opt.Value == f.BranchId?.ToString())">@opt.Text</option>
+            }
+        </select>
+    </div>
+    <div class="col-12 col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-outline-primary flex-grow-1">Lọc</button>
+        @if (!string.IsNullOrWhiteSpace(f.Keyword) || !string.IsNullOrEmpty(f.Status) || f.BranchId.HasValue)
+        {
+            <a asp-action="Index" class="btn btn-outline-secondary" title="Xoá bộ lọc">✕</a>
+        }
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Mã đơn</th>
+                <th>Khách hàng</th>
+                <th>Chi nhánh</th>
+                <th>Lịch nhận → trả</th>
+                <th class="text-center">Số xe</th>
+                <th class="text-end">Cọc / Tổng tiền</th>
+                <th>Trạng thái</th>
+                <th class="text-end">Thao tác nghiệp vụ</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in Model.Items)
+            {
+                var total = r.TotalAmount ?? (r.SubTotal - r.DiscountAmount + r.LateFee + r.DamageFee);
+                <tr>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@r.RentalId" class="fw-bold text-decoration-none">@r.RentalCode</a>
+                        <div class="small text-muted">@DisplayHelper.DateTimeText(r.CreatedAt)</div>
+                    </td>
+                    <td>
+                        <div class="fw-semibold">@r.CustomerName</div>
+                        <small class="text-muted">@(r.CustomerPhone ?? "Chưa có SĐT")</small>
+                    </td>
+                    <td class="small">
+                        <div>@r.BranchName</div>
+                        @if (!string.IsNullOrWhiteSpace(r.StaffName))
+                        {
+                            <span class="text-muted">NV: @r.StaffName</span>
+                        }
+                    </td>
+                    <td class="small text-nowrap">
+                        <div>Nhận: @DisplayHelper.DateTimeText(r.StartDate)</div>
+                        <div class="text-muted">Hẹn trả: @DisplayHelper.DateTimeText(r.ExpectedReturnDate)</div>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-light text-dark border">@r.MotorbikeCount xe</span>
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <div class="fw-semibold text-primary">@DisplayHelper.Money(total)</div>
+                        <small class="text-muted">Cọc: @DisplayHelper.Money(r.DepositAmount)</small>
+                    </td>
+                    <td>
+                        <status-badge value="@r.Status" kind="rental" />
+                    </td>
+                    <td class="text-end text-nowrap">
+                        @if (isStaff)
+                        {
+                            @if (r.Status == RentalStatus.Pending)
+                            {
+                                <a asp-action="Details" asp-route-id="@r.RentalId" asp-fragment="confirm-card"
+                                   class="btn btn-sm btn-warning fw-semibold">Duyệt đơn</a>
+                            }
+                            else if (r.Status == RentalStatus.Confirmed)
+                            {
+                                <a asp-action="Pickup" asp-route-id="@r.RentalId"
+                                   class="btn btn-sm btn-info text-dark fw-semibold">Bàn giao xe</a>
+                            }
+                            else if (r.Status == RentalStatus.Renting)
+                            {
+                                <a asp-action="Return" asp-route-id="@r.RentalId"
+                                   class="btn btn-sm btn-primary fw-semibold">Nhận xe & Quyết toán</a>
+                            }
+                        }
+
+                        @if (r.Status == RentalStatus.Completed)
+                        {
+                            <a asp-action="Invoice" asp-route-id="@r.RentalId"
+                               class="btn btn-sm btn-outline-success fw-semibold">Hoá đơn</a>
+                        }
+
+                        <a asp-action="Details" asp-route-id="@r.RentalId" class="btn btn-sm btn-outline-secondary">Chi tiết</a>
+                    </td>
+                </tr>
+            }
+            @if (!Model.Items.Any() && Model.ErrorMessage == null)
+            {
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">Không tìm thấy đơn thuê xe nào phù hợp với bộ lọc.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<partial name="_Pagination" model="pagination" />

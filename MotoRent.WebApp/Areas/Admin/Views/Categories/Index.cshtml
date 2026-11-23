@@ -1,0 +1,55 @@
+@model List<CategoryDto>
+@{
+    ViewData["Title"] = "Quản lý loại xe";
+}
+
+<partial name="_AdminNav" />
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">Loại xe</h1>
+    <a asp-action="Create" class="btn btn-primary">+ Thêm loại xe</a>
+</div>
+
+<partial name="_StatusMessage" />
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Tên loại</th>
+                <th>Mô tả</th>
+                <th class="text-center">Số xe</th>
+                <th>Trạng thái</th>
+                <th class="text-end">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var category in Model)
+            {
+                <tr class="@(category.IsActive ? "" : "text-muted")">
+                    <td class="fw-semibold">@category.CategoryName</td>
+                    <td class="small">@(category.Description ?? "—")</td>
+                    <td class="text-center">@category.MotorbikeCount</td>
+                    <td>
+                        @if (category.IsActive) { <span class="badge bg-success">Hoạt động</span> }
+                        else { <span class="badge bg-secondary">Ngừng</span> }
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <a asp-action="Edit" asp-route-id="@category.CategoryId" class="btn btn-sm btn-outline-primary">Sửa</a>
+                        @if (category.IsActive)
+                        {
+                            <form asp-action="Deactivate" asp-route-id="@category.CategoryId" method="post" class="d-inline"
+                                  onsubmit="return confirm('Ngừng hoạt động loại xe @category.CategoryName?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Ngừng</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td colspan="5" class="text-center text-muted">Chưa có loại xe.</td></tr>
+            }
+        </tbody>
+    </table>
+</div>

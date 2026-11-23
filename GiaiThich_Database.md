@@ -264,7 +264,7 @@ var revenue = await _context.VwMonthlyRevenues.OrderBy(x => x.Year).ThenBy(x => 
    await _context.SaveChangesAsync();
    await tx.CommitAsync();
    ```
-4. **Không trả Entity ra API** → dùng DTO + AutoMapper (tránh vòng lặp navigation và lộ PasswordHash).
+4. **Không trả Entity ra API** → dùng DTO, map thủ công trong `MotoRent.Services/Mappings` (tránh vòng lặp navigation và lộ PasswordHash).
 5. **OData** expose trên Entity/DTO `Motorbike`, `Rental`: ví dụ
    `GET /odata/Motorbikes?$filter=Status eq 'Available' and PricePerDay le 200000&$expand=Brand,Category&$orderby=PricePerDay&$top=10`
 6. Dữ liệu ngày tháng mẫu quanh **tháng 9–10/2026**: có đơn đang thuê (5, 6), đơn chờ duyệt (7), đơn đã xác nhận (8) để demo đủ luồng.
